@@ -73,7 +73,8 @@ pg.setConfigOptions(antialias=False, background="w", foreground="k")
 # 状态 → 状态灯颜色 / 事件竖线颜色
 STATE_COLORS = {None: "#9e9e9e", 0: "#2eb82e", 1: "#e0311c", 2: "#e6a300"}
 PEER_COLORS = ["#d62728", "#1f77b4", "#2ca02c", "#9467bd",
-               "#ff7f0e", "#17becf", "#8c564b", "#e377c2"]
+               "#ff7f0e", "#17becf", "#8c564b", "#e377c2",
+               "#bcbd22", "#7f7f7f", "#17a2b8", "#5b5ea6"]  # 12 链路不重色
 EVENT_LINE_STYLES = {0: Qt.PenStyle.SolidLine, 1: Qt.PenStyle.DashLine,
                      2: Qt.PenStyle.DotLine}
 CURVE_MAX_POINTS = 3600         # ~6min @10Hz/peer，deque 自动丢最老
@@ -768,6 +769,13 @@ class Dashboard(QMainWindow):
         self.global_calib_label = QLabel("")
         self.global_calib_label.setStyleSheet("color:#d46b08; font-weight:bold; font-size:9pt;")
         top_row2.addWidget(self.global_calib_label)
+        # 链路状态一键查询（12 链路新鲜度/seq 丢包率，回显到命令日志）
+        self.link_status_btn = QPushButton("链路状态")
+        self.link_status_btn.setToolTip("发送 link list：12 条链路的新鲜度与 seq 丢失率（>10% 应全网降源帧 50Hz）")
+        self.link_status_btn.setStyleSheet("color:#1a5fb4;")
+        self.link_status_btn.clicked.connect(
+            lambda: self._send_raw_command("link list"))
+        top_row2.addWidget(self.link_status_btn)
         top_row2.addStretch(1)
 
         # 统计信息（右对齐）
@@ -1021,17 +1029,41 @@ class Dashboard(QMainWindow):
                     card.set_name(name)
 
     def _get_card(self, key: str, mac: str, observer: str) -> ZoneCard:
-        """按链路键取/建卡片（12 链路各一张，同源不同 observer 分卡）。"""
+        """按链路键取/建卡片（12 链路各一张，同源不同 observer 分卡）。
+        新卡按 (observer id, MAC 末字节) 有序插入——S3 本地链路在前，
+        远端按 TX1/TX2/TX3 分组，避免发现顺序交错。"""
         card = self._cards.get(key)
         if card is None:
             card = ZoneCard(mac, self._name_for(mac), observer=observer)
             card.calib_requested.connect(self._start_calib)
             card.card_clicked.connect(self._on_card_clicked)  # 连接卡片点击事件
-            self.cards_layout.addWidget(card)
+            pos = self._card_sort_pos(observer, mac)
+            index = self.cards_layout.count()
+            for i in range(self.cards_layout.count()):
+                w = self.cards_layout.itemAt(i).widget()
+                other = self._cards.get(w.link_key) if w is not None else None
+                if other is not None and self._card_sort_pos(other.observer, other.mac) > pos:
+                    index = i
+                    break
+            self.cards_layout.insertWidget(index, card)
             self.cards_hint.hide()
             self._cards[key] = card
             card.set_calib_enabled(self._command_channel is not None)
         return card
+
+    @staticmethod
+    def _card_sort_pos(observer: str, mac: str) -> tuple:
+        """卡片排序键：(observer 节点 id, 源 MAC 末字节)；未知名排最后。"""
+        obs_id = 9
+        for oid, oname in NODE_NAMES.items():
+            if oname == (observer or "").upper():
+                obs_id = oid
+                break
+        try:
+            mac_last = int((mac or "").replace(":", "")[-2:], 16)
+        except ValueError:
+            mac_last = 0xFF
+        return (obs_id, mac_last)
 
     def _on_card_clicked(self, observer: str, mac: str):
         """卡片被点击时选中（用于阈值调节）。"""
@@ -1442,6 +1474,14 @@ class Dashboard(QMainWindow):
         ok = self._command_channel(text)
         self.log(">> %s%s" % (text, "" if ok else "   [发送失败]"))
         self.cmd_edit.clear()
+
+    def _send_raw_command(self, text: str):
+        """程序内一键命令（不经输入框），带日志与通道可用性检查。"""
+        if self._command_channel is None:
+            self.log(">> 命令通道不可用（当前数据源非串口）")
+            return
+        ok = self._command_channel(text)
+        self.log(">> %s%s" % (text, "" if ok else "   [发送失败]"))
 
     def _on_threshold_apply(self):
         """应用阈值调节（用户输入新阈值，应用到当前选中的 peer）。"""
