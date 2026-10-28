@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>ESP32 CSI 监控系统 · 验收与调试指南</title>
+<style>
+  body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:960px;margin:0 auto;
+       padding:24px;line-height:1.7;color:#222;background:#fff}
+  h1{font-size:22pt;border-bottom:3px solid #2b6cb0;padding-bottom:8px}
+  h2{font-size:15pt;color:#2b6cb0;margin-top:36px;border-left:6px solid #2b6cb0;padding-left:10px}
+  h3{font-size:12pt;margin-top:22px}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:10.5pt}
+  th,td{border:1px solid #bbb;padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#e8f0fe}
+  code,pre{font-family:Consolas,monospace;background:#f4f4f4;border-radius:4px}
+  code{padding:1px 5px;font-size:10.5pt}
+  pre{padding:10px 14px;overflow-x:auto;font-size:10pt;line-height:1.5}
+  .warn{background:#fff3cd;border:1px solid #e0a800;border-radius:6px;padding:10px 14px;margin:12px 0}
+  .danger{background:#fdecea;border:1px solid #c0392b;border-radius:6px;padding:10px 14px;margin:12px 0}
+  .ok{background:#e6f4ea;border:1px solid #34a853;border-radius:6px;padding:10px 14px;margin:12px 0}
+  .card{border:1px solid #ccc;border-radius:8px;padding:12px 16px;margin:12px 0;background:#fafafa}
+  .step{display:inline-block;background:#2b6cb0;color:#fff;border-radius:50%;width:24px;height:24px;
+        text-align:center;line-height:24px;margin-right:8px;font-weight:bold}
+  figure{margin:16px 0;text-align:center}
+  figcaption{font-size:9.5pt;color:#666;margin-top:6px}
+  svg{max-width:100%;height:auto}
+  .case{border:1px solid #ccc;border-left:6px solid #2b6cb0;border-radius:6px;padding:10px 14px;margin:10px 0}
+  .case b.t{font-size:11.5pt}
+  @media print{body{max-width:none;padding:0}h2{page-break-after:avoid}.card,.case{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<h1>ESP32 CSI 多监测点扰动监控系统<br>验收与调试指南</h1>
+<p><b>适用：</b>现场验收（M5 七用例）、场地部署、日常调试排错。<b>使用方法：</b>按 §2 上电自检 → §4 摆放 → §5 标定 → §6 逐条跑用例；卡住时查 §7 排错树。
+场地条件达不到理想要求时，先看 §8 降级对照——<b>每种情况都有预期与对策，按"降级"口径记录即可，不算失败</b>。</p>
+
+<h2>1. 一分钟认识系统</h2>
+<figure>
+<svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6 Z" fill="#555"/></marker></defs>
+  <!-- router -->
+  <rect x="380" y="20" width="150" height="46" rx="8" fill="#e8f0fe" stroke="#2b6cb0" stroke-width="2"/>
+  <text x="455" y="40" text-anchor="middle" font-size="14" font-weight="bold">路由器 1003-k</text>
+  <text x="455" y="57" text-anchor="middle" font-size="10">2.4G（实测信道4，全系统跟随）</text>
+  <!-- TX nodes -->
+  <rect x="60" y="120" width="170" height="70" rx="8" fill="#fff" stroke="#c0392b" stroke-width="2"/>
+  <text x="145" y="145" text-anchor="middle" font-size="13" font-weight="bold">TX1 经典#1 (COM15*)</text>
+  <text x="145" y="163" text-anchor="middle" font-size="10">物理MAC 8C:94:DF:A1:DD:D0</text>
+  <text x="145" y="178" text-anchor="middle" font-size="10" fill="#c0392b">CSI源MAC 1a:00:00:00:00:00</text>
+  <rect x="370" y="120" width="170" height="70" rx="8" fill="#fff" stroke="#c0392b" stroke-width="2"/>
+  <text x="455" y="145" text-anchor="middle" font-size="13" font-weight="bold">TX2 C3 (COM5*)</text>
+  <text x="455" y="163" text-anchor="middle" font-size="10">物理MAC E4:B0:63:33:F0:40</text>
+  <text x="455" y="178" text-anchor="middle" font-size="10" fill="#c0392b">CSI源MAC 1a:00:00:00:00:01</text>
+  <rect x="680" y="120" width="170" height="70" rx="8" fill="#f5f5f5" stroke="#999" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="765" y="145" text-anchor="middle" font-size="13" font-weight="bold">TX3 经典#2 (待恢复)</text>
+  <text x="765" y="163" text-anchor="middle" font-size="10">物理MAC 8C:94:DF:A1:DA:4C</text>
+  <text x="765" y="178" text-anchor="middle" font-size="10">芯片进不了下载模式→冷却重插</text>
+  <!-- RX -->
+  <rect x="330" y="240" width="250" height="60" rx="8" fill="#e6f4ea" stroke="#34a853" stroke-width="2.5"/>
+  <text x="455" y="264" text-anchor="middle" font-size="14" font-weight="bold">RX 接收 S3 (COM3*)</text>
+  <text x="455" y="282" text-anchor="middle" font-size="10">物理MAC DC:DA:0C:1D:AE:10 · esp-radar 多peer按源MAC分发</text>
+  <!-- PC -->
+  <rect x="700" y="240" width="160" height="60" rx="8" fill="#fff" stroke="#555" stroke-width="2"/>
+  <text x="780" y="264" text-anchor="middle" font-size="13" font-weight="bold">PC 上位机</text>
+  <text x="780" y="282" text-anchor="middle" font-size="10">ui_main.py · CSV 记录</text>
+  <!-- links -->
+  <line x1="145" y1="120" x2="145" y2="70" stroke="#555" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="145" y1="70" x2="380" y2="52" stroke="none"/>
+  <path d="M145,120 L145,66 L380,48" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <path d="M455,120 L455,66" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <path d="M765,120 L765,66 L530,48" fill="none" stroke="#c8c8c8" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="300" y="40" font-size="10" fill="#666">全部 STA 接入同一 AP（CSI 走空口，同信道即通）</text>
+  <!-- csi links to RX -->
+  <path d="M145,190 L370,265" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#ar)"/>
+  <path d="M455,190 L455,240" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#ar)"/>
+  <path d="M765,190 L580,262" fill="none" stroke="#c8c8c8" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="230" y="240" font-size="10" fill="#c0392b">链路1 CSI</text>
+  <text x="465" y="220" font-size="10" fill="#c0392b">链路2 CSI</text>
+  <text x="640" y="240" font-size="10" fill="#999">链路3（恢复后）</text>
+  <!-- serial -->
+  <path d="M580,270 L700,270" fill="none" stroke="#2b6cb0" stroke-width="2.5" marker-end="url(#ar)"/>
+  <text x="640" y="292" text-anchor="middle" font-size="10" fill="#2b6cb0">UART 2M 二进制帧（主通道）</text>
+</svg>
+<figcaption>图1 · 系统拓扑。星号*：COM 口会漂移，<b>任何操作前先 esptool chip_id 验 MAC</b>（§3）。</figcaption>
+</figure>
+<div class="warn"><b>核心概念（决定了所有调参动作）：</b>CSI 扰动检测是<b>逐链路</b>的——每块 TX 与 RX 之间是一条独立链路，人走过链路覆盖区才会被该区检测到。多节点靠<b>源 MAC</b> 区分（不是物理 MAC），所以每块 TX 固件里写死的 CSI 源 MAC 必须互不相同。</div>
+
+<h2>2. 上电自检（5 分钟）</h2>
+<table>
+<tr><th>步</th><th>动作</th><th>预期</th><th>不对劲时</th></tr>
+<tr><td>1</td><td>四块板独立供电上电（<b>不要共一个USB hub</b>）</td><td>各板电源灯亮，无异味异热</td><td>烫手→断电冷却（见 §7-Q1）</td></tr>
+<tr><td>2</td><td>PC 打开 <code>pc_dashboard</code>：先验身份——<pre>C:\Espressif\tools\python\v5.5.6\venv\Scripts\esptool.exe --port COM口 chip_id</pre></td><td>逐口核对 §1 图中物理 MAC；<b>MAC 对上才动</b></td><td>"No serial data received"→§7-Q2</td></tr>
+<tr><td>3</td><td>启动上位机（RX 源）：<pre>python pc_dashboard\ui_main.py --port COM3 --baud 2000000 --auto-start --auto-record</pre></td><td>顶部帧率 ≈20/s（两链路10Hz），出现 2 张区域卡片，心跳行 uptime 递增</td><td>无卡片/无帧→§7-Q3</td></tr>
+<tr><td>4</td><td>REPL 查状态：<code>peer list</code>、<code>wifi_status</code></td><td>peer 表与阈值从 NVS 自动恢复（重启也不丢）；已连 1003-k</td><td>peer 空→重新 §5 注册标定</td></tr>
+</table>
+
+<h2>3. 摆放部署（决定检测质量的最大变量）</h2>
+<h3>3.1 三条铁律</h3>
+<div class="card">
+<b>① 链路中点对准活动区</b>——人横穿 TX↔RX 连线中段的椭圆区时扰动最强；TX 朝向要让活动路径<b>横穿</b>链路而不是顺着它。<br>
+<b>② 天线竖直、TX/RX 同极化</b>——板子立起来（胶带/支架固定），天线不要平贴桌面（多径最差姿态）。<br>
+<b>③ 三条链路空间方向岔开</b>——它们共用 RX 一根天线，方向岔开灵敏度区才不重叠，这是"无串扰"的物理前提，比任何软件调参都管用。
+</div>
+<h3>3.2 标准摆位俯视图</h3>
+<figure>
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+  <rect x="30" y="30" width="840" height="360" fill="#fdfdfd" stroke="#333" stroke-width="3"/>
+  <text x="60" y="60" font-size="12" fill="#666">房间（教室/实验室）俯视图</text>
+  <!-- door -->
+  <rect x="30" y="200" width="10" height="80" fill="#c0392b"/>
+  <text x="52" y="245" font-size="11">门/入口</text>
+  <!-- RX -->
+  <rect x="90" y="70" width="26" height="26" fill="#34a853"/>
+  <text x="103" y="62" text-anchor="middle" font-size="11" font-weight="bold">RX</text>
+  <text x="103" y="112" text-anchor="middle" font-size="9">前侧墙高位1.5m</text>
+  <!-- TX1 -->
+  <rect x="80" y="300" width="26" height="26" fill="#c0392b"/>
+  <text x="93" y="345" text-anchor="middle" font-size="11" font-weight="bold">TX1</text>
+  <text x="93" y="359" text-anchor="middle" font-size="9">门侧，距RX 3~4m</text>
+  <!-- TX2 -->
+  <rect x="700" y="330" width="26" height="26" fill="#e67e22"/>
+  <text x="713" y="322" text-anchor="middle" font-size="11" font-weight="bold">TX2</text>
+  <text x="713" y="375" text-anchor="middle" font-size="9">后墙，距RX 3~5m</text>
+  <!-- TX3 -->
+  <rect x="780" y="90" width="26" height="26" fill="#8e44ad"/>
+  <text x="793" y="82" text-anchor="middle" font-size="11" font-weight="bold">TX3</text>
+  <text x="760" y="112" text-anchor="middle" font-size="9">窗侧，距RX 3~4m</text>
+  <!-- links with activity zones -->
+  <ellipse cx="120" cy="200" rx="46" ry="62" fill="#c0392b" opacity="0.12"/>
+  <line x1="103" y1="96" x2="93" y2="300" stroke="#c0392b" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="30" y="205" font-size="9" fill="#c0392b" transform="rotate(0)">zone1</text>
+  <ellipse cx="420" cy="230" rx="70" ry="44" fill="#e67e22" opacity="0.12"/>
+  <line x1="116" y1="96" x2="700" y2="343" stroke="#e67e22" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="400" y="205" font-size="9" fill="#e67e22">zone2（链路中点覆盖后排）</text>
+  <ellipse cx="600" cy="130" rx="60" ry="40" fill="#8e44ad" opacity="0.12"/>
+  <line x1="116" y1="86" x2="780" y2="103" stroke="#8e44ad" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="560" y="90" font-size="9" fill="#8e44ad">zone3</text>
+  <!-- movement arrow -->
+  <path d="M180,260 Q320,300 460,270" fill="none" stroke="#2b6cb0" stroke-width="2.5" marker-end="url(#ar)"/>
+  <text x="290" y="305" font-size="10" fill="#2b6cb0">人员活动路径：横穿链路中段=扰动最强</text>
+  <!-- metal warning -->
+  <rect x="330" y="40" width="120" height="26" fill="#fdecea" stroke="#c0392b"/>
+  <text x="390" y="57" text-anchor="middle" font-size="10" fill="#c0392b">⚠ 金属柜/显示器 ≥0.5m 外</text>
+</svg>
+<figcaption>图2 · 标准摆位。摆完拍照存档（data/日期_部署照/），<b>此后挪动任何一块板=该链路标定作废</b>。</figcaption>
+</figure>
+<h3>3.3 场地不达标怎么办（降级对照）</h3>
+<table>
+<tr><th>场地情况</th><th>会发生什么</th><th>对策</th><th>验收口径</th></tr>
+<tr><td>桌子挤，链路只有 0.5~1m</td><td>RSSI 近场饱和（AGC 顶格）：幅值贴 int8 上限被削顶，<b>方差对比度塌缩</b>——仿真复现 M4 异常形态（mean≈1700c 时走动 var 只有静息 6 倍，检出归零；mean≤1200c 时无影响）</td><td>能拉多远拉多远（≥1m）；上位机看 <b>mean_c&gt;1500 立即拉远</b>；标定后阈值按现场 train 结果 ±10~20% 微调；演示动作放大幅度（正常走过→挥手）</td><td>按"降级"记录实际距离</td></tr>
+<tr><td>没法架高，只能桌面平放</td><td>地面/桌面反射强，覆盖区变矮变窄</td><td>板子立起来保持天线竖直；TX/RX 尽量等高；活动区选链路正中</td><td>照实记录摆位照片</td></tr>
+<tr><td>周边金属多/显示器近</td><td>强反射，噪声底抬高，可能持续误报</td><td>离金属 ≥0.5m 是底线；实在避不开→清场 train 后看噪声底，阈值会自动抬高适应</td><td>误报超标的用例记"降级"</td></tr>
+<tr><td>路由器不给连/不给改信道</td><td>—</td><td>方案A：TX/RX 全部 STA 跟随同一 AP（现状设计，任何信道都行）；方案B：连 RX 自带热点 CIS_RX-ae10/cis12345；方案C：场地完全无 AP→直收模式重烧（docs/标定SOP.md §7，提前在家演练一次）</td><td>记录实际信道</td></tr>
+<tr><td>2.4G 拥挤（会场人多）</td><td>空口竞争→丢帧/空窗→<b>有效特征率下降</b>。仿真实测：有效率 7Hz 时"停走 3s 内 STILL"必然超标（M=25 窗按有效率数）、5Hz 时挥手 3s 必漏——这是算法属性，不是故障</td><td>特征流降到 5Hz（<code>report rate 5</code>）；换干净信道（改路由器或直收模式固定）。验收前看 UI 实时特征率：≥9Hz 按 3s 判；更低按 <b>25/有效率+1s</b> 放宽 STILL 口径，挥手用例改长动作</td><td>丢帧&lt;1% 按降级后的速率算</td></tr>
+<tr><td>只能用 USB 口供电/共排插</td><td>烧录或多板同启时电压跌落→<b>RX 莫名重启</b>（本项目实测踩过）</td><td><b>每板独立供电</b>：手机充电宝/独立充电头都行；线用短粗的</td><td>—</td></tr>
+</table>
+
+<h2>4. 标定流程（每条链路约 1 分钟）</h2>
+<p>标定=让固件学习"这条链路安静时长什么样"。人离开覆盖区、关门、关风扇空调后再做。</p>
+<table>
+<tr><th>步</th><th>上位机路线（推荐）</th><th>REPL 等价命令</th><th>预期反馈</th></tr>
+<tr><td><span class="step">1</span>注册链路（每板一次）</td><td>命令框输入</td><td><code>peer add 1a:00:00:00:00:00 门口</code><br><code>peer add 1a:00:00:00:00:01 后排</code></td><td>日志：<code>peer added, NVS saved</code>；新卡片出现</td></tr>
+<tr><td><span class="step">2</span>清场</td><td colspan="2" rowspan="1">所有人离开该链路覆盖区（35~60s 也行，按钮固定 15s 倒计时是留人离场的时间）</td><td>—</td></tr>
+<tr><td><span class="step">3</span>训练</td><td>点该区域卡片上的 <b>「标定 15s」</b>按钮 → 倒计时结束自动发 train</td><td><code>train 1a:00:00:00:00:00 15</code></td><td>卡片显示"清场倒计时…→等待 0x30"，约 15s 后卡片回填 <b>阈值/噪声底</b></td></tr>
+<tr><td><span class="step">4</span>持久化</td><td>命令框输入</td><td><code>threshold save</code></td><td>日志：<code>thresholds persisted to NVS</code>（<b>不 save 断电即丢</b>）</td></tr>
+<tr><td><span class="step">5</span>复验</td><td colspan="2">静止 30s 无事件 → 走动 2s 内卡片变红(MOTION) → 停走 ≤3s 变绿(STILL)</td><td>不对→§7-Q5 微调阈值</td></tr>
+</table>
+<div class="ok"><b>已内置的保险：</b>train 期间检测自动暂停、RSSI 突变帧自动丢弃、阈值/peer 表断电自动恢复（实测软重启 1.3s 恢复、4.9s 重新联网）。这些不用你管。</div>
+
+<h2>5. 验收七用例速查卡（M5）</h2>
+<p>完整空白记录表在 <code>docs/验收记录表.md</code>，逐条填写。每条都允许"降级通过"（注明条件）。</p>
+<div class="case"><b class="t">① 静置 30min 误报 ≤2 次/10min</b><br>
+前置：全部链路已标定+save，清场关门。动作：人离开，连续 30min。看：事件表新增行数（0x10）。顺带看上位机自己 30min 不崩不卡（M3 长稳一并记了）。<br>
+<b>误报多？</b>多半是没关的空调/门外走动/金属反射——先找扰动源，别急着调阈值。</div>
+<div class="case"><b class="t">② 0.5m/s 横穿 10 次 ≥9 次且 2s 内报</b><br>
+5m 走 10s 校准步速；从进入覆盖区计时到卡片变红。若 10 次里只差 1~2 次：检查是否走偏出了椭圆覆盖区。</div>
+<div class="case"><b class="t">③ 1~2m 挥手 3s 内检出</b><br>
+在链路中点附近大幅挥手。<b>检不出=如实记为灵敏度极限（降级），禁止为过用例调阈值</b>。</div>
+<div class="case"><b class="t">④ 隔墙检测</b><br>
+TX、RX 分隔相邻房间，必须重 train（摆放变了）。墙后走动可检出=通过；只能检走动不能检"有人在"=降级通过。预期本条是七条里最弱的，如实记录墙体类型厚度。</div>
+<div class="case"><b class="t">⑤ 双区并发无串扰</b><br>
+两人<b>同时</b>在两个区域活动 60s：A 区的动作只能亮 A 卡片。再加单人逐区遮挡核对归属。台架上已验证过 MAC 归因正确（TX2 断流 5s 而 TX1 流零间隙）。</div>
+<div class="case"><b class="t">⑥ 10min 丢帧 &lt;1%</b><br>
+看上位机顶栏"丢帧"读数（环丢/队列丢/固件丢三层都在）。心跳行的固件丢帧计数做交叉核对。USB 拔插/重连要在备注里写明。</div>
+<div class="case"><b class="t">⑦ 断电重启 30s 内恢复</b><br>
+RX 直接拔电→等 5s→上电计时。判据：≤30s 恢复特征流，且 <code>peer list</code>/<code>threshold</code> 逐条与断电前一致（不记得=忘做 threshold save，回 §4 步4）。</div>
+
+<h2>6. 故障排查决策树</h2>
+<figure>
+<svg viewBox="0 0 920 560" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6 Z" fill="#555"/></marker></defs>
+  <style>.q{fill:#e8f0fe;stroke:#2b6cb0;stroke-width:2}.a{fill:#e6f4ea;stroke:#34a853;stroke-width:2}
+    .x{fill:#fdecea;stroke:#c0392b;stroke-width:2}text{font-size:11px}
+    .lbl{font-size:10px;fill:#666}</style>
+  <rect class="q" x="330" y="20" width="260" height="44" rx="8"/>
+  <text x="460" y="38" text-anchor="middle" font-weight="bold">现象：上位机无帧/无卡片/无事件</text>
+  <text x="460" y="55" text-anchor="middle">先看顶栏：帧率读数、ok 计数、crc错 计数</text>
+  <line x1="460" y1="64" x2="460" y2="96" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+  <rect class="q" x="310" y="100" width="300" height="44" rx="8"/>
+  <text x="460" y="118" text-anchor="middle" font-weight="bold">Q1 帧率=0 且 ok=0？</text>
+  <line x1="380" y1="144" x2="180" y2="190" stroke="#34a853" stroke-width="1.5" marker-end="url(#a2)"/>
+  <line x1="540" y1="144" x2="740" y2="190" stroke="#c0392b" stroke-width="1.5" marker-end="url(#a2)"/>
+  <text x="250" y="165" class="lbl">是</text><text x="660" y="165" class="lbl">否（有帧但异常）</text>
+  <rect class="a" x="60" y="195" width="250" height="120" rx="8"/>
+  <text x="185" y="215" text-anchor="middle" font-weight="bold">查物理层</text>
+  <text x="185" y="234" text-anchor="middle">① RX 串口打开成功？(独占)</text>
+  <text x="185" y="252" text-anchor="middle">② TX 板还活着？看电源/发烫</text>
+  <text x="185" y="270" text-anchor="middle">③ TX 连上 AP？TX 串口看</text>
+  <text x="185" y="288" text-anchor="middle">"connected with 1003-k"</text>
+  <text x="185" y="306" text-anchor="middle">④ RX/TX 信道一致？wifi_status</text>
+  <rect class="q" x="620" y="195" width="250" height="70" rx="8"/>
+  <text x="745" y="220" text-anchor="middle" font-weight="bold">Q2 crc错 &gt; 0 或持续丢帧？</text>
+  <text x="745" y="240" text-anchor="middle">（顶栏读数/STATS）</text>
+  <line x1="745" y1="265" x2="745" y2="300" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+  <rect class="a" x="620" y="305" width="250" height="95" rx="8"/>
+  <text x="745" y="325" text-anchor="middle" font-weight="bold">链路质量差</text>
+  <text x="745" y="343" text-anchor="middle">换 USB 口/短线；TX 与 RX 拉开</text>
+  <text x="745" y="361" text-anchor="middle">或靠近一点（过近饱和也坏）</text>
+  <text x="745" y="379" text-anchor="middle">仍高→report rate 5 降流量</text>
+  <line x1="185" y1="315" x2="185" y2="350" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+  <rect class="q" x="60" y="355" width="250" height="60" rx="8"/>
+  <text x="185" y="378" text-anchor="middle" font-weight="bold">Q3 TX 日志无 "connected"？</text>
+  <text x="185" y="398" text-anchor="middle">（用 esptool 验 MAC 后开 TX 串口）</text>
+  <line x1="185" y1="415" x2="185" y2="450" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+  <rect class="a" x="60" y="455" width="250" height="80" rx="8"/>
+  <text x="185" y="475" text-anchor="middle" font-weight="bold">凭据/信道问题</text>
+  <text x="185" y="493" text-anchor="middle">REPL: wifi_config -s 1003-k -p 密码</text>
+  <text x="185" y="511" text-anchor="middle">或 AP 改了密码→重配；信道跟随</text>
+  <text x="185" y="529" text-anchor="middle">AP 无需改固件</text>
+  <line x1="460" y1="64" x2="460" y2="96" stroke="none"/>
+  <rect class="q" x="310" y="430" width="260" height="60" rx="8"/>
+  <text x="440" y="452" text-anchor="middle" font-weight="bold">Q4 有帧但某块板无卡片？</text>
+  <text x="440" y="472" text-anchor="middle">（其余正常）</text>
+  <line x1="310" y1="470" x2="185" y2="470" stroke="none"/>
+  <path d="M440,430 L440,395 L745,395 L745,405" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+  <rect class="a" x="310" y="500" width="260" height="55" rx="8"/>
+  <text x="440" y="520" text-anchor="middle">该 TX 源 MAC 没 peer add（看 TX 开机</text>
+  <text x="440" y="538" text-anchor="middle">日志 mac= 字段）或源 MAC 与别板撞了</text>
+</svg>
+<figcaption>图3 · 无帧/无卡片排查树。</figcaption>
+</figure>
+<table>
+<tr><th>现象</th><th>原因与处置</th></tr>
+<tr><td><b>Q5</b> 一直报 MOTION 不停</td><td>台架/场地噪声底本来就高于默认阈值 30，<b>属预期</b>——清场后 train 一次即正常。<b>禁止</b>靠调高默认阈值掩盖。</td></tr>
+<tr><td><b>Q6</b> train 后 0x30 一直不来</td><td>train 期间有人走动/RSSI 突变会丢窗重计。彻底清场重跑；<code>dump &lt;mac&gt;</code> 看 training=yes left=Xs。</td></tr>
+<tr><td><b>Q7</b> RX 自己重启（uptime 倒退）</td><td>本项目实测出现过 2 次未归因重启，头号嫌疑=多板共 USB 供电被拉低。<b>处置：每板独立供电</b>；再犯→保留现场，记录时间点，看串口首行 rst: 原因（brownout=供电，panic=软件）。</td></tr>
+<tr><td><b>Q8</b> esptool "No serial data received"（CH340 经典板）</td><td>板过热/卡死。拔线冷却 2~3min 重插；还不行按住 BOOT 再插线强制进下载模式；再不行换口重试并 <b>chip_id 验 MAC</b>（口会漂移）。降速：命令加 460800。</td></tr>
+<tr><td><b>Q9</b> TCP 2323 / UDP 3333 连不上</td><td>网段隔离：PC 不在 1003-k 网段。PC 接 1003-k 或连 RX 热点 CIS_RX-ae10/cis12345；或干脆全走 COM3 串口（功能等价）。</td></tr>
+<tr><td><b>Q10</b> 两块板事件混在一张卡</td><td>两 TX 源 MAC 相同。查各自开机日志 mac= 字段；TX3 复用 csi_tx_v1 工程时最容易撞（flash_tx.bat tx3 会拦截，提示先改 1a:00:00:00:00:02）。</td></tr>
+<tr><td><b>Q11</b> 标定期间曲线有大空洞</td><td>跑过 <code>wifi_scan</code>（跳扫占信道 ~2.6s）。标定/验收期间别用。</td></tr>
+</table>
+
+<h2>7. 常用命令与文件速查</h2>
+<pre>
+# 身份验证（永远的第一步）
+C:\Espressif\tools\python\v5.5.6\venv\Scripts\esptool.exe --port COM口 chip_id
+
+# 上位机（串口源）
+python pc_dashboard\ui_main.py --port COM3 --baud 2000000 --auto-start --auto-record
+python pc_dashboard\ui_main.py --source sim --auto-start        # 无硬件演示
+python pc_dashboard\ui_main.py --source replay --replay-file data\xxx\cis_log.csv
+
+# RX REPL（串口 或 无线 telnet &lt;RX的IP&gt; 2323）
+peer add &lt;源MAC&gt; &lt;区域名&gt;   peer list   peer del &lt;源MAC&gt;
+train &lt;源MAC&gt; 15             threshold save              threshold &lt;源MAC&gt; [值]
+dump [源MAC]                 report rate 5               wifi_status
+system restart               udp on &lt;PC的IP&gt;
+
+# 烧录（内置 MAC 门禁，口错/源MAC错会拒绝）
+scripts\flash_rx.bat COM3            # RX
+scripts\flash_tx.bat tx1 COM15       # TX1 经典板
+scripts\flash_tx.bat tx2 COM5        # TX2 C3
+scripts\flash_tx.bat tx3 COM14 460800  # TX3（恢复后；脚本会强制先改源MAC为…:02）
+
+# 备份（覆盖任何板前）
+bash scripts/backup_flash.sh COM口 4M|16M
+</pre>
+<table>
+<tr><th>要什么</th><th>去哪</th></tr>
+<tr><td>部署/标定完整 SOP（含直收模式）</td><td><code>docs/标定SOP.md</code></td></tr>
+<tr><td>七用例空白记录表（打印带去现场）</td><td><code>docs/验收记录表.md</code></td></tr>
+<tr><td>历史实测日志（对照"正常长什么样"）</td><td><code>docs/m1_*.log、m2_*.log、m4_*.log</code></td></tr>
+<tr><td>全片固件备份（刷坏可回滚）</td><td><code>scripts/backup/</code></td></tr>
+</table>
+
+<h2>8. 验收心态与降级总原则</h2>
+<div class="ok">
+<b>判定只有三档：通过 / 降级（注明条件与极限值）/ 不通过。</b>
+场地理想当然最好；达不到时，把实际条件如实写进记录表（距离、高度、信道、障碍物），能演示出"环境扰动→系统有响应、事件归属正确、数据可查"这个核心故事，就是一次有说服力的验收。研发阶段已留好三道保险：阈值现场自学习（train）、断电自恢复（NVS）、链路自隔离（源 MAC 分发）——这三样在任何场地都成立，是演示时值得强调的设计点。
+</div>
+<div class="danger"><b>三条红线：</b>①不许为过用例调阈值凑数据（检不出就记灵敏度极限）；②覆盖固件前必须先备份；③任何串口操作前先 chip_id 验 MAC——COM 号不可信。</div>
+
+<p style="color:#888;font-size:9.5pt;margin-top:30px">生成于 2026-10-28 · 依据 IMPLEMENTATION_PLAN.md v1.3 / 标定SOP / 工作流实测记录；打印后配合 docs/验收记录表.md 使用。</p>
+</body>
+</html>

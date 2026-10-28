@@ -1,0 +1,2445 @@
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (605) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (606) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (604) cpu_start: Pro cpu start user code
+I (604) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (179) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (179) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (603) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (604) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (179) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (604) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (604) cpu_start: Pro cpu start user code
+I (604) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (27) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (29) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (182) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (604) cpu_start: Pro cpu start user code
+I (604) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (605) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (606) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (27) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (604) cpu_start: Pro cpu start user code
+I (604) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (605) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (606) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (604) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (178) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (179) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (594) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (603) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (604) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (605) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (606) spi_flash: detected chip: gd
+I (606) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (27) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (605) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (608) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+cis> 
+assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:454 (Invalid mbox)
+
+
+Backtrace: 0x4037d6ed:0x3fced8e0 0x4037d6b9:0x3fced900 0x403853f1:0x3fced920 0x4201e1ad:0x3fceda40 0x4202db1f:0x3fceda70 0x4201d702:0x3fcedac0 0x4200cbf6:0x3fcedae0
+
+
+
+
+ELF file SHA256: aefe04c12
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037d87c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0xe30
+load:0x403cb700,len:0x3174
+entry 0x403c893c
+I (24) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (24) boot: compile time Oct 28 2026 00:01:07
+I (24) boot: chip revision: v0.2
+I (24) qio_mode: Enabling default flash chip QIO
+I (24) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : QIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Partition Table:
+I (25) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 0000d000 00008000
+I (26) boot:  1 fctry            WiFi data        01 02 00015000 00004000
+I (26) boot:  2 log_status       WiFi data        01 02 00019000 00004000
+I (27) boot:  3 otadata          OTA data         01 00 0001d000 00002000
+I (27) boot:  4 phy_init         RF data          01 01 0001f000 00001000
+I (28) boot:  5 ota_0            OTA app          00 10 00020000 00600000
+I (28) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=1f634h (128564) map
+I (48) esp_image: segment 1: paddr=0003f65c vaddr=3fc9ba00 size=009bch (  2492) load
+I (49) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=98a58h (625240) map
+I (144) esp_image: segment 3: paddr=000d8a80 vaddr=3fc9c3bc size=049bch ( 18876) load
+I (148) esp_image: segment 4: paddr=000dd444 vaddr=40374000 size=1792ch ( 96556) load
+I (167) esp_image: segment 5: paddr=000f4d78 vaddr=50000000 size=00020h (    32) load
+I (177) boot: Loaded app from partition at offset 0x20000
+I (178) octal_psram: vendor id    : 0x0d (AP)
+I (178) octal_psram: dev id       : 0x02 (generation 3)
+I (178) octal_psram: density      : 0x03 (64 Mbit)
+I (178) octal_psram: good-die     : 0x01 (Pass)
+I (179) octal_psram: Latency      : 0x01 (Fixed)
+I (179) octal_psram: VCC          : 0x01 (3V)
+I (179) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (179) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (179) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (180) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (180) octal_psram: DriveStrength: 0x00 (1/1)
+I (180) MSPI Timing: Enter psram timing tuning
+I (181) esp_psram: Found 8MB PSRAM device
+I (181) esp_psram: Speed: 80MHz
+I (181) cpu_start: Multicore app
+I (595) esp_psram: SPI SRAM memory test OK
+I (603) cpu_start: Pro cpu start user code
+I (603) cpu_start: cpu freq: 240000000 Hz
+I (604) app_init: Application information:
+I (604) app_init: Project name:     ESP32_CIS_V1.0
+I (604) app_init: App version:      1
+I (604) app_init: Compile time:     Oct 28 2026 01:42:39
+I (604) app_init: ELF file SHA256:  aefe04c12...
+I (604) app_init: ESP-IDF:          v5.5.6
+I (604) efuse_init: Min chip rev:     v0.0
+I (605) efuse_init: Max chip rev:     v0.99 
+I (605) efuse_init: Chip rev:         v0.2
+I (605) heap_init: Initializing. RAM available for dynamic allocation:
+I (605) heap_init: At 3FCA57F0 len 00043F20 (271 KiB): RAM
+I (605) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (605) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (606) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (606) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (607) spi_flash: detected chip: gd
+I (607) spi_flash: flash io: qio
+I (607) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (607) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (608) main_task: Started on CPU0
+I (608) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (609) main_task: Calling app_main()
+[5n

@@ -1,0 +1,107 @@
+% ============ 附录 ============
+% ---------- 附录A 协议帧格式总表 ----------
+\chapter{协议帧格式总表}\label{chap:appA}
+
+帧外层格式统一为：AA~55 | ver(1B${}=0$x01) | type(1B) | len(2B LE) | payload | crc16(2B LE)，CRC-16/CCITT-FALSE 覆盖 ver$\ldots$payload。各帧类型 payload 逐字节定义见表\ref{tab:frameA}（多字节字段一律小端，u16 饱和刻度见\S\ref{sec:proto}）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{各帧类型 payload 逐字节定义（偏移自 payload 首字节）}
+  \label{tab:frameA}
+  \begin{tabular}{llllp{4.6cm}}
+    \toprule
+    \textbf{类型} & \textbf{偏移} & \textbf{字段} & \textbf{长度} & \textbf{说明} \\
+    \midrule
+    0x01 心跳 & 0 & uptime\_ms & 4 & 上电运行毫秒数 \\
+     & 4 & peer\_count & 1 & 已注册链路数 \\
+     & 5 & free\_heap & 4 & 空闲堆内存（B） \\
+     & 9 & lost\_frames & 2 & 固件侧丢帧累计 \\
+    \midrule
+    0x10 事件 & 0 & mac & 6 & CSI 源 MAC \\
+     & 6 & name\_id & 1 & 区域名编号（链路表槽位） \\
+     & 7 & state & 1 & 0 静止 / 1 运动 / 2 存在 \\
+     & 8 & score & 2 & 触发时窗方差（centi-var） \\
+     & 10 & rssi & 1 & 有符号 dBm \\
+     & 11 & ts\_ms & 4 & 触发时刻（ms） \\
+    \midrule
+    0x11 特征 & 0 & mac & 6 & CSI 源 MAC \\
+     & 6 & ts\_ms & 4 & 窗口时刻（ms） \\
+     & 10 & mean & 2 & 窗均值（centi-amp） \\
+     & 12 & var & 2 & 窗方差（centi-var） \\
+     & 14 & p2p & 2 & 窗峰峰值（centi-amp） \\
+     & 16 & rssi & 1 & 有符号 dBm \\
+    \midrule
+    0x20 日志 & 0 & text & len & ASCII 文本回显 \\
+    \midrule
+    0x30 标定 & 0 & mac & 6 & CSI 源 MAC \\
+     & 6 & train\_s & 2 & 标定时长（s） \\
+     & 8 & threshold & 2 & 阈值（centi-var，已存 NVS） \\
+     & 10 & noise\_floor & 2 & 噪声底（centi-var） \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ---------- 附录B 工程目录与证据文件索引 ----------
+\chapter{工程目录与证据文件索引}\label{chap:appB}
+
+\section{工程目录索引}
+
+工程根目录 \path{F:\ESP\projects\ESP32-CIS\}，与报告对应的源码位置：
+
+\begin{table}[htbp]
+  \centering
+  \caption{工程目录与报告章节对应}
+  \label{tab:diridx}
+  \begin{tabular}{p{4.3cm}p{6.6cm}p{2.4cm}}
+    \toprule
+    \textbf{目录} & \textbf{内容} & \textbf{对应章节} \\
+    \midrule
+    \path{ESP32_CIS_V1.0/main/} & RX 固件（cis\_protocol.h、cis\_detect / cis\_report / cis\_console / cis\_peer / cis\_wifi、app\_main.c、Kconfig.projbuild） & \S\ref{sec:fwimpl}、\S\ref{sec:proto}、\S\ref{sec:alg} \\
+    \path{csi_tx_v1/}、\path{csi_tx_c3_v1/} & TX 固件（csi\_send 示例改配置，源 MAC 各异） & \S\ref{sec:boardsec} \\
+    \path{pc_dashboard/} & protocol.py、serial\_source.py、store.py、udp\_source.py、replay.py、ui\_main.py、ui\_smoke.py、minimal\_monitor.py、protocol\_selftest.py & \S\ref{sec:ui}、\S\ref{sec:fwimpl} \\
+    \path{scripts/} & flash\_rx.bat、flash\_tx.bat（MAC 门禁+源 MAC 防呆）、backup\_flash.sh、m1/m2/m4 分析脚本 & \S\ref{sec:boardsec}、\S\ref{chap:verify} \\
+    \path{docs/} & 实施计划、调研报告、标定 SOP、验收记录表、全部日志证据 & 全文 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{证据文件索引}
+
+第\ref{chap:verify}章全部实验的证据文件（位于 \path{docs/}）：
+
+\begin{itemize}
+  \item \path{m1_sample.log}、\path{m1_sample_prefixfix_baseline.log} —— M1 数据流（546 帧/60~s、间隔统计、修复前后基线）；
+  \item \path{m2_verify_run7.log} —— M2 帧质量（心跳 59/事件 116/特征 533，0 坏 CRC）；
+  \item \path{m2_verify_run11_scan.log} —— wifi\_scan 跳扫离信道 2.6~s 与恢复；
+  \item \path{m2_verify_run10_boot.log} —— 重启后 NVS 恢复、TCP console 监听、got IP；
+  \item \path{m4_register_train_run1.log} —— 双链路标定（681/227、20367/6789）、TX2 复位静默窗串扰隔离、1860+293 帧零坏 CRC；
+  \item \path{m4_restart_nvs_run4.log} —— 软重启后双 peer 带阈值 1.26~s 恢复、4.9~s got IP；
+  \item \path{a6_m2_0350.log} —— 双链路复核抽样（特征 1082 帧、两 MAC 各 541）；
+  \item \path{pc_dashboard/protocol_selftest.py}、\path{pc_dashboard/ui_smoke.py} —— 协议自测（20/20）与上位机冒烟（17/17）；
+  \item \path{scripts/m4_analyze.py} —— M4 静默窗/归因分析脚本。
+\end{itemize}
+
+\section{【实测待填】占位清单}
+
+全文红色占位（搜索“【实测待填”可定位）与任务书占位清单对应如下，交付现场数据后逐项替换：
+
+\begin{table}[htbp]
+  \centering
+  \caption{占位清单}
+  \label{tab:placeholder}
+  \begin{tabular}{p{0.8cm}p{6.8cm}p{6.4cm}}
+    \toprule
+    \textbf{号} & \textbf{占位项} & \textbf{位置} \\
+    \midrule
+    1 & 封面题目页全部字段（学号/姓名/小组成员/学院/专业/指导教师/日期） & 封面 \\
+    2 & 实物照片（RX/TX 板卡、天线、整机） & 图\ref{fig:photo-hw} \\
+    3 & 场地信息（房间/尺寸/信道）与部署点位图、点位照片 & \S\ref{chap:deploy}、图\ref{fig:photo-deploy} \\
+    4 & 三链路现场标定值表（噪声底/阈值/保存确认） & 表\ref{tab:calib} \\
+    5 & 七条验收用例全部数据 & 表\ref{tab:accept} \\
+    6 & 30~min 长稳曲线截图 & 图\ref{fig:photo-ui} \\
+    7 & 上位机实机运行截图（卡片/曲线/事件表） & 图\ref{fig:photo-ui} \\
+    8 & 演示照片/视频截图 & \S\ref{chap:deploy} \\
+    9 & 小组成员与分工 & 第\ref{chap:concl}章之后 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,9 @@
+# Note: Firmware partition offset needs to be 64K aligned, initial 36K (9 sectors) are reserved for bootloader and partition table
+# 移植自 console_test/partitions.csv；S3#1 为 16MB flash，ota_0 由 1832K 扩至 6M
+# Name,     Type, SubType,  Offset,     Size,  Flags
+nvs,        data, nvs,      0xd000,     32K,
+fctry,      data, nvs,      0x15000,    16K,
+log_status, data, nvs,      0x19000,    16K,
+otadata,    data, ota,      0x1d000,    8K,
+phy_init,   data, phy,      0x1f000,    4K,
+ota_0,      app,  ota_0,    0x20000,    6M,

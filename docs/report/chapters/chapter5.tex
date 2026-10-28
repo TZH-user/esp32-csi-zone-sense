@@ -1,0 +1,219 @@
+% ============ 第5章 关键模块实现 ============
+\chapter{关键模块实现}\label{sec:fwimpl}
+
+本章按模块给出职责与关键实现，代码段均摘自工程源码（省略号表示略去的次要行），完整文件路径见附录\ref{chap:appB}。
+
+\section{固件（ESP32\_CIS\_V1.0）}
+
+固件模块划分见表\ref{tab:fwmod}。启动序列为：\texttt{nvs\_flash\_init} $\to$ \texttt{cis\_console\_start}（REPL 先起，任何后续步骤卡住都可现场干预）$\to$ \texttt{esp\_radar\_init/start}（注册两级回调）$\to$ \texttt{cis\_console\_net\_start}（TCP REPL，须在 esp-radar 拉起 lwip 之后调用，否则 lwip 断言重启）$\to$ \texttt{cis\_peer\_load}（NVS 恢复链路表）$\to$ \texttt{cis\_wifi\_start}（异步连 STA）$\to$ \texttt{cis\_detect\_start} $\to$ \texttt{cis\_report\_start}。
+
+\begin{table}[htbp]
+  \centering
+  \caption{RX 固件模块职责}
+  \label{tab:fwmod}
+  \begin{tabular}{lp{9.6cm}}
+    \toprule
+    \textbf{模块} & \textbf{职责} \\
+    \midrule
+    \texttt{app\_main.c} & 启动序列编排，esp-radar 配置（filter\_mac 引导过滤、HT20 带宽、逐包/检测窗回调注册） \\
+    \texttt{cis\_detect.c} & per-peer 逐包累加器与滑窗统计、RSSI 突变过滤、滞回 FSM、训练与阈值 \\
+    \texttt{cis\_report.c} & 5 类帧组帧发送：USB-Serial-JTAG 直写主通道 + UDP 可选；1~Hz 心跳；MOTION 期 2~Hz 重发 \\
+    \texttt{cis\_console.c} & REPL 命令（peer/train/threshold/report/udp/dump/wifi\_config 等）；串口+TCP 2323 双 REPL（自实现 socket 线程） \\
+    \texttt{cis\_peer.c} & 链路表（8 槽）、区域名、阈值；NVS 序列化持久化；最近 CSI 源观测表 \\
+    \texttt{cis\_wifi.c} & STA 连网、NVS 凭据、断线重连；失败 30~s 开 SoftAP 兜底配网 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{cis\_detect：累加器与滑窗统计}
+
+逐包回调运行在 WiFi 上下文，必须轻量：只做单包平均幅值（有效子载波 $|I+\mathrm{j}Q|$ 的均值）计算与累加器更新。8 槽累加器按源 MAC 匹配槽位，portMUX 临界区内完成查找与累加；RSSI 突变的包不进滑窗并将整窗标记 dirty（代码\ref{lst:acc}）。检测窗回调（约 10~Hz/peer）到期时在同一临界区一次排出窗口统计量，换算 centi 刻度后发特征帧，再进入 FSM 判决。
+
+\begin{lstlisting}[style=cstyle, caption={逐包累加与 RSSI 突变过滤（cis\_detect.c 节选）}, label={lst:acc}]
+if (slot) {
+    /* RSSI 突变过滤（|ΔRSSI|>6dB 不进滑窗） */
+    if (abs(rssi - slot->rssi_prev) > 6) {
+        slot->dirty = true;
+        slot->rssi_jump_drops++;
+    } else {
+        if (slot->cnt == 0) {
+            slot->min_milli = slot->max_milli = mean_milli;
+        } else {
+            if (mean_milli < slot->min_milli) {
+                slot->min_milli = mean_milli;
+            }
+            if (mean_milli > slot->max_milli) {
+                slot->max_milli = mean_milli;
+            }
+        }
+        slot->acc_milli    += mean_milli;             /* Sigma amp（毫单位） */
+        slot->sq_acc_milli += (uint64_t)mean_milli * mean_milli;
+        slot->cnt++;
+    }
+    slot->rssi_prev = (int16_t)rssi;
+    slot->rssi_last = (int16_t)rssi;
+}
+\end{lstlisting}
+
+检测窗回调中的滞回 FSM 判决如代码\ref{lst:fsm}：连续 N=10 窗超阈确认运动、连续 M=25 窗低阈回归、存在保持 10~s；状态跳变经 \texttt{fsm\_transition} 即时发 0x10 事件帧。训练期间不进 FSM，避免把标定过程当扰动。
+
+\begin{lstlisting}[style=cstyle, caption={滞回状态机判决（cis\_detect.c 节选）}, label={lst:fsm}]
+uint16_t N = CONFIG_CIS_MOTION_CONFIRM_FRAMES;
+uint16_t M = CONFIG_CIS_STILL_CONFIRM_FRAMES;
+bool over = d->var_c > d->threshold;
+
+if (over) {
+    d->over_cnt++;
+    d->under_cnt = 0;
+} else {
+    d->under_cnt++;
+    d->over_cnt = 0;
+    if (d->state != CIS_DET_IDLE) {
+        d->quiet_ms += (ts > d->last_ts_ms) ? (ts - d->last_ts_ms) : 0;
+    }
+}
+
+switch (d->state) {
+case CIS_DET_IDLE:
+    if (over && d->over_cnt >= N) {
+        fsm_transition(d, CIS_DET_MOTION, ts);
+    }
+    break;
+case CIS_DET_MOTION:
+    if (d->under_cnt >= M) {
+        fsm_transition(d, CIS_DET_PRESENCE, ts);
+    }
+    break;
+case CIS_DET_PRESENCE:
+    if (over && d->over_cnt >= N) {
+        fsm_transition(d, CIS_DET_MOTION, ts);
+    } else if (d->quiet_ms >= (uint32_t)CONFIG_CIS_PRESENCE_HOLD_S * 1000u) {
+        fsm_transition(d, CIS_DET_IDLE, ts);
+    }
+    break;
+default:
+    d->state = CIS_DET_IDLE;
+    break;
+}
+\end{lstlisting}
+
+\subsection{cis\_report：帧发送与心跳}
+
+检测上下文产生的特征/事件/标定结果先入消息队列，由独立上报任务组帧发送，避免在雷达回调里做串口写与 NVS 写。主通道直写 USB-Serial-JTAG 硬件接口，绕过 VFS 层，避免控制台 CRLF 翻译破坏二进制帧；UDP 为可选副通道（默认关，端口 3333），同帧格式。心跳由 1~Hz 节拍产生，携带运行时长、peer 数、空闲堆内存与固件侧丢帧计数，作为 PC 端链路存活判断与丢帧对账的依据；MOTION 事件在持续期以 2~Hz 重发，防止上位机漏收单个事件帧。
+
+\subsection{cis\_console：双 REPL}
+
+REPL 双开：主 REPL 走 USB-Serial-JTAG（COM3 双向）；无线 REPL 为 cis\_console 自实现的 TCP socket 线程（IDF v5.5.6 的 esp\_console 没有 \texttt{esp\_console\_new\_repl\_net} API），并把日志 vprintf 镜像到 TCP 连接，便于无线标定与观测。命令经 esp\_console 注册，覆盖链路登记（peer add/del/list/scan）、标定（train、threshold[ save]）、上报控制（report、udp）与诊断（dump、wifi\_status/wifi\_scan、system restart）。
+
+\subsection{cis\_peer：链路表与 NVS 持久化}
+
+链路表容量 8 槽，每槽记录源 MAC、区域名与阈值。NVS 序列化格式为 magic（``CIS1''）+ 槽位使用位图 + 定长记录（代码\ref{lst:nvs}），一次读写一个二进制块。上电时 \texttt{cis\_peer\_load} 反序列化并校验 magic 后逐槽重建 esp-radar peer 与检测上下文，实现断电恢复。
+
+\begin{lstlisting}[style=cstyle, caption={链路表 NVS 序列化（cis\_peer.c 节选）}, label={lst:nvs}]
+/* NVS 序列化：magic(4) + used 位图(1) + 每槽 [mac6|name16|thr2] */
+static void table_serialize(uint8_t *blob)
+{
+    memset(blob, 0, BLOB_SIZE);
+    blob[0] = (uint8_t)(NVS_MAGIC & 0xFF);
+    blob[1] = (uint8_t)((NVS_MAGIC >> 8) & 0xFF);
+    blob[2] = (uint8_t)((NVS_MAGIC >> 16) & 0xFF);
+    blob[3] = (uint8_t)((NVS_MAGIC >> 24) & 0xFF);
+    uint8_t used_bits = 0;
+    for (int i = 0; i < CIS_PEER_MAX; i++) {
+        uint8_t *rec = blob + 5 + i * REC_SIZE;
+        if (s_table[i].used) {
+            used_bits |= (uint8_t)(1U << i);
+            memcpy(rec, s_table[i].mac, 6);
+            memcpy(rec + 6, s_table[i].name, CIS_PEER_NAME_LEN);
+            rec[6 + CIS_PEER_NAME_LEN] = (uint8_t)(s_table[i].threshold & 0xFF);
+            rec[6 + CIS_PEER_NAME_LEN + 1] = (uint8_t)(s_table[i].threshold >> 8);
+        }
+    }
+    blob[4] = used_bits;
+}
+\end{lstlisting}
+
+\subsection{cis\_wifi：连网与兜底}
+
+事件回调处理 STA 启动/断线/IP 获取三类事件：断线即重连；连网任务等待事件组连接标志，30~s（\texttt{SOFTAP\_FALLBACK\_MS}）未连上则启动 SoftAP（CIS\_RX-ae10）兜底配网。WiFi 凭据存 NVS，重启后自动重连。
+
+\section{上位机（pc\_dashboard）}
+
+\subsection{protocol：协议编解码与流式解析}
+
+\path{protocol.py} 为纯标准库实现，dataclass 载荷字段序与线上字节序一致（struct.Struct 显式小端）；表驱动 CRC 与固件逐位实现交叉验证（自测用）。流式解析器的准入与重同步核心如代码\ref{lst:parser}：CRC 不匹配只前移 1 字节，保留嵌在其后的真帧。
+
+\begin{lstlisting}[style=pystyle, caption={流式解析：CRC 准入与失步重同步（protocol.py 节选）}, label={lst:parser}]
+body = bytes(buf[2:HEADER_LEN + plen])
+(crc_got,) = struct.unpack_from("<H", buf, HEADER_LEN + plen)
+if crc16_ccitt(body) != crc_got:
+    # CRC 不符：只前移 1 字节，保留嵌在其后的真帧
+    self.bad_crc += 1
+    self.resyncs += 1
+    self.bytes_dropped += 1
+    del buf[:1]
+    return None, True
+payload = bytes(buf[HEADER_LEN:HEADER_LEN + plen])
+del buf[:total]
+self.frames_ok += 1
+return Frame(ver=ver, type=ftype, payload=payload), True
+\end{lstlisting}
+
+\subsection{serial\_source：双线程与环形缓冲}
+
+reader 线程阻塞读串口写入 1~MB 环形缓冲，写满时丢弃装不下的最新部分并计数（保旧数据完整，parser 消费连续，不会读到半截被覆盖的数据）；parser 线程取出字节喂 StreamParser，解出的帧入帧队列。帧队列满时的 EVENT 优先挤占逻辑如代码\ref{lst:enqueue}——事件帧是监控系统的核心输出，宁可丢特征帧不丢事件帧。
+
+\begin{lstlisting}[style=pystyle, caption={帧队列 EVENT 优先挤占（serial\_source.py 节选）}, label={lst:enqueue}]
+def _enqueue(self, frame: protocol.Frame):
+    """队满时：EVENT 优先——挤掉队首非 EVENT 帧；其余帧直接丢弃计数。"""
+    while True:
+        try:
+            self.frame_queue.put_nowait(frame)
+            return
+        except queue.Full:
+            if frame.type == protocol.TYPE_EVENT:
+                try:
+                    self.frame_queue.get_nowait()
+                except queue.Empty:
+                    continue
+                self._stats["queue_dropped"] += 1
+            else:
+                self._stats["queue_dropped"] += 1
+                return
+\end{lstlisting}
+
+\subsection{store：CSV 会话与回放缓冲}
+
+CSV 会话文件为 \path{data/YYYYMMDD_HHMM/cis_log.csv}，10 列表头（ts\_iso, mac, name, type, state, score, mean, var, p2p, rssi）为并集 schema——各帧类型只填自己有的列，其余留空，表头一致性即“CSV 列齐全”判据（\texttt{Store.header\_matches}）。所有帧归一化为 Record 后同时写入 CSV 与内存回放缓冲（默认 3 万条，约两 peer 特征流 25 分钟），跨文件回放由 replay.py 按时间戳倍速重现。
+
+\subsection{ui\_main：监控界面}
+
+ui\_main 基于定时轮询循环消费帧队列，按帧类型分发（代码\ref{lst:dispatch}）：EVENT 更新事件表与事件竖线、FEATURES 追加每 peer 曲线、HEARTBEAT 更新顶栏存活与丢帧读数、CALIB 回填标定结果；任何带 MAC 的记录同时刷新对应区域卡片并存入 CSV。区域卡片按源 MAC 动态创建，缺省名以 MAC 末 4 位生成。
+
+\begin{lstlisting}[style=pystyle, caption={帧分发（ui\_main.py 节选）}, label={lst:dispatch}]
+def _dispatch(self, rec: Record):
+    if rec.mac:
+        self._last_seen[rec.mac] = rec.ts
+        card = self._get_card(rec.mac)
+        card.update_record(rec)
+    if self.store.is_recording:
+        self.store.record(rec)
+
+    kind = rec.kind
+    if kind == "HEARTBEAT":
+        self._hb = rec.raw
+    elif kind == "EVENT":
+        self._add_event_line(rec)      # 曲线事件竖线
+        self._add_event_row(rec)       # 事件表
+    elif kind == "FEATURES":
+        s = self._series.setdefault(rec.mac, {...})
+        s["t"].append(rec.ts)
+        s["var"].append(rec.var or 0)
+    elif kind == "CALIB":
+        self._add_event_row(rec)
+        self.log("CALIB %s %s" % (rec.mac, rec.text))
+        if self._calib and self._calib["mac"] == rec.mac:
+            self._finish_calib(rec)
+    elif kind == "LOG":
+        self.log("RX: %s" % rec.text)
+\end{lstlisting}

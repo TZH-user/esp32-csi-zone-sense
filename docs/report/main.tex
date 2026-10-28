@@ -1,0 +1,210 @@
+%!TeX encoding = UTF-8
+%!TeX program = xelatex
+% --------------------------------------------------------
+% 《微机原理》课程大作业报告
+%   题目3：基于 ESP32 CSI 扰动特征的多监测点监控系统
+% 模板：GUEThesis（thesis-guet.cls，勿改类文件）
+% 编译：xelatex -interaction=nonstopmode main.tex （连编两遍，目录/交叉引用）
+% 事实来源：F:\ESP\projects\ESP32-CIS\docs\报告任务书.md §4 事实库
+% --------------------------------------------------------
+\special{dvipdfmx:config z 1}
+\documentclass[eversion]{thesis-guet}
+
+% ---------- tikz（系统框图/状态机图/协议帧格式图） ----------
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds,
+  calc, decorations.pathreplacing}
+
+% 宋体别名（tikz 图内文字使用）
+\newCJKfontfamily{\songti}[AutoFakeBold=true,Path=./fonts/]{simsun.ttc}
+% CJK 等宽（代码清单中的中文注释回退字体，消除 xeCJK 告警）
+\setCJKmonofont[AutoFakeBold=true,Path=./fonts/]{simsun.ttc}
+
+\graphicspath{{./image/}}
+
+% 大作业封面主标题（模板默认“本科毕业设计（论文）”，此处按课程大作业改）
+\renewcommand{\booktitle}{《微机原理》课程大作业报告}
+
+% 代码样式：在模板全局 lstset（阴影框/行号/断行）基础上按语言细分
+\lstdefinestyle{cstyle}{
+  language=C, columns=flexible, keepspaces=true, showstringspaces=false,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!70!black},
+  commentstyle=\color{green!40!black},
+  stringstyle=\color{purple!70!black},
+  numbers=left, numberstyle=\tiny\color{gray},
+  xleftmargin=4em, xrightmargin=1em, aboveskip=1.2em, belowskip=1.2em
+}
+\lstdefinestyle{pystyle}{
+  language=Python, columns=flexible, keepspaces=true, showstringspaces=false,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!70!black},
+  commentstyle=\color{green!40!black},
+  stringstyle=\color{purple!70!black},
+  numbers=left, numberstyle=\tiny\color{gray},
+  xleftmargin=4em, xrightmargin=1em, aboveskip=1.2em, belowskip=1.2em
+}
+\crefname{listing}{代码}{代码}
+
+% ---------- 封面信息 ----------
+\title{基于ESP32 CSI扰动特征的多监测点监控系统}{ESP32 CSI-Based Multi-Point Disturbance Monitoring System}
+\studentnumber{\textcolor{red}{\textbf{【实测待填：学号】}}}
+\author{\textcolor{red}{\textbf{【实测待填：姓名】}}}
+\school{\textcolor{red}{\textbf{【实测待填：学院】}}}
+\major{\textcolor{red}{\textbf{【实测待填：专业】}}}
+\advisor{\textcolor{red}{\textbf{【实测待填：指导教师】}}}
+\datereply{\textcolor{red}{\textbf{【实测待填：日期】}}}
+
+% ---------- 封面（改编自模板 \makecover：信息表将“指导教师职称”行替换为“小组成员”行） ----------
+\makeatletter
+\renewcommand{\makecover}
+{
+  \thispagestyle{empty}
+  \setlength{\extrarowheight}{9pt}
+  \pdfbookmark{封面}{cover}
+
+  \setlength{\TPHorizModule}{1cm}
+  \setlength{\TPVertModule}{1cm}
+
+  ~\\
+
+  \begin{textblock}{15}(3,3.2)
+    \centering
+    {\includegraphics[width=0.95 \textwidth]{./image/Guet-logo.pdf}}
+  \end{textblock}
+
+  \begin{textblock}{10}(5.5,7.85)
+    \centering
+    \fontsize{26pt}{26pt}\selectfont{\heiti\bfseries\booktitle}\\
+  \end{textblock}
+
+  \begin{textblock}{15}(2.8,11.3)
+    \centering
+    \renewcommand{\arraystretch}{0.75}
+    \begin{tabular}
+      {
+      m{1.4cm}<{\vspace{-0.3\baselineskip}\centering}
+      m{11.4cm}<{\vspace{-0.3\baselineskip}\centering}
+      }
+      \bfseries\fontsize{16pt}{16pt}\selectfont 题\hspace{0.5em}目: &
+      \multirow[t]{2}{11.4cm}{\centering\bfseries\fontsize{16pt}{16pt}\selectfont\zh@thetitle}
+      \\ \cline{2-2}
+      \\ \cline{2-2}
+    \end{tabular}
+  \end{textblock}
+
+  \begin{textblock}{16}(2.4,16.9)
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}
+      {
+      >{\bfseries\fontsize{15pt}{15pt}\selectfont}m{3.8cm}
+      >{\centering\arraybackslash\fontsize{15pt}{15pt}\selectfont} p{9.6cm}}
+
+      学\hspace{0.36cm} \qquad \qquad 号:  & \thestudentnumber \\
+      \cline{2-2}
+      姓\hspace{0.36cm} \qquad \qquad 名:  & \theauthor        \\
+      \cline{2-2}
+      小\hspace{0.3cm} 组\hspace{0.3cm} 成\hspace{0.3cm} 员: & \theprotitle \\
+      \cline{2-2}
+      学\hspace{0.36cm} \qquad \qquad 院:  & \theschool        \\
+      \cline{2-2}
+      专\quad \hspace{0.36cm} \qquad \quad 业: & \themajor     \\
+      \cline{2-2}
+      指\hspace{0.38cm} 导\hspace{0.38cm} 教\hspace{0.38cm} 师: & \theadvisor \\
+      \cline{2-2}
+    \end{tabular}
+  \end{textblock}
+
+  \begin{textblock}{8}(6.5,26.9)
+    \centering
+    \fontsize{16pt}{16pt}\selectfont \thedatereply
+  \end{textblock}
+
+  \setcounter{page}{1}
+  \setlength{\extrarowheight}{2pt}
+}
+\makeatother
+% “小组成员”一行的取值复用 \protitle 字段
+\protitle{\textcolor{red}{\textbf{【实测待填：小组成员】}}}
+
+\begin{document}
+\makecover
+
+\input{chapters/abstract}
+
+\thesistableofcontents
+
+% 电子版（eversion）无需左右衬页：去掉模板 \thesiscontent 中的 \cleardoublepage，
+% 避免目录与第1章之间出现整页空白（其余行为与模板一致）
+\renewcommand{\thesiscontent}{%
+  \clearpage
+  \addtocontents{toc}{\protect\setcounter{tocdepth}{2}}%
+  \standardheader
+  \pagenumbering{arabic}}
+
+\thesiscontent
+
+\input{chapters/chapter1}  % 1 引言
+\input{chapters/chapter2}  % 2 设计指标
+\input{chapters/chapter3}  % 3 硬件平台与开发环境
+\input{chapters/chapter4}  % 4 系统设计
+\input{chapters/chapter5}  % 5 关键模块实现
+\input{chapters/chapter6}  % 6 测试与验证
+\input{chapters/chapter7}  % 7 现场部署与验收
+\input{chapters/chapter8}  % 8 总结与展望
+\input{chapters/chapter9}  % 9 分工
+
+\thesisappendix
+% 附录章目录编号为“附录A/B”，比正文章节号宽：临时加宽数字框（写进 .toc，参考文献条目前恢复）
+\addtocontents{toc}{\protect\addtolength{\protect\cftchapnumwidth}{2.6em}}
+\input{chapters/appendix}  % 附录A/B
+\addtocontents{toc}{\protect\addtolength{\protect\cftchapnumwidth}{-2.6em}}
+
+% ---------- 参考文献（任务书 §7 清单，真实来源） ----------
+\newpage
+\fancyhf{}
+\fancyhead[CE,CO]{\fontsize{10.5pt}{12.6pt}\selectfont 桂林电子科技大学毕业设计（论文）报告用纸}
+\fancyhead[RE,RO]{\fontsize{10.5pt}{12.6pt}\selectfont 第\thepage 页\enspace 共 \pageref{LastPage} 页}
+\begin{thebibliography}{10}
+\interlinepenalty=10000
+
+\bibitem{ref:espcsi}
+Espressif Systems. esp-csi: ESP32 CSI 基于 Wi-Fi 信道状态信息的感知工具集与 esp-radar 组件[CP/OL].
+\url{https://github.com/espressif/esp-csi}, 2025.
+
+\bibitem{ref:hernandez}
+Hernandez S M, Bulut E. WiFi Sensing on the Edge: Signal Processing Techniques and
+Promise for Real-Time RNG[J]. IEEE Communications Surveys \& Tutorials, 2022, 25(1): 330--362.
+
+\bibitem{ref:80211bf}
+Du R, Santoro D, Seifert M, et al. An Overview on IEEE 802.11bf: WLAN Sensing[EB/OL].
+arXiv:2207.04859, 2022.（IEEE 802.11bf 标准已于 2025 年 5 月正式批准）
+
+\bibitem{ref:espectre}
+Pace F, et al. ESPectre: ESP32 CSI Motion Detection Framework[CP/OL]. \url{https://espectre.dev}, 2025.
+
+\bibitem{ref:gait}
+Multi-Person Gait Separation with Commodity WiFi Sensors[EB/OL]. arXiv:2601.02177, 2026.
+
+\bibitem{ref:generalizability}
+A Survey on Wi-Fi Sensing Generalizability[EB/OL]. arXiv:2503.08008, 2025.
+
+\bibitem{ref:csisim}
+CSI Simulation: Why Additive Noise Fails and How to Fix It[EB/OL]. arXiv:2607.01882, 2026.
+
+\bibitem{ref:agc185}
+Espressif. esp-csi Issue \#185: AGC 增益跳变对 CSI 幅值的影响与对策[EB/OL].
+\url{https://github.com/espressif/esp-csi/issues/185}, 2024.
+
+\bibitem{ref:espidf}
+Espressif Systems. ESP-IDF Programming Guide (v5.5.6): ESP-WIFI CSI / NVS / esp\_console /
+FreeRTOS[EB/OL]. \url{https://docs.espressif.com/projects/esp-idf/en/v5.5.6/esp32s3/}, 2025.
+
+\bibitem{ref:trm}
+Espressif Systems. ESP32-S3 / ESP32-C3 技术参考手册[Z]. 2024.
+
+\end{thebibliography}
+
+\normalfont
+\end{document}

@@ -1,0 +1,36 @@
+% ============ 第6章 测试与验证 ============
+\chapter{测试与验证}\label{chap:verify}
+
+本章汇总台架阶段已完成并留有日志证据的实验；空间部署后的现场验收（第\ref{chap:deploy}章）尚未执行，不计入本章。全部数据的证据文件位于工程 \path{docs/} 目录，标注于各节。
+
+\section{协议自测}\label{sec:selftest}
+
+\path{pc_dashboard/protocol_selftest.py}（纯标准库，可作确定性门控）覆盖五类用例：编解码往返一致性、坏帧拒绝、失步重同步、控制台日志字节交织容忍、CRC 变体交叉验证（表驱动 vs 逐位实现、标准校验值 0x29B1）。实测 \textbf{20/20 用例全部通过}（证据：\path{pc_dashboard/protocol_selftest.py}，2026-10-28 运行记录）。
+
+\section{数据流与帧质量}\label{sec:link}
+
+\textbf{M1 数据流打通。}COM3@2~Mbps 录制 60~s：546 帧全部来自 TX1（MAC 归因 100\% 正确），无断流、零 $>$300~ms 间隙；包到达间隔中位数 110~ms、最大 132~ms（对应检测窗约 10 包/窗的粒度）；幅值 mean${}=37.93$、std${}=0.099$、p2p${}=0.64$（raw 刻度），RSSI 恒为 $-6$~dBm、AGC 增益恒 0——近距静态链路高度稳定（证据：\path{m1_sample.log}）。此前的基线记录 \path{m1_sample_prefixfix_baseline.log} 暴露了 v1 打印的整数均值截断伪影（真值 36.5--37.5 恒打出 37，std${}=0$ 假象），v2 改毫单位打印并增加窗内 p2p 与 agc\_gain 诊断字段后消除。
+
+\textbf{M2 帧质量。}60~s 串口流解析统计：心跳 59 帧（间隔恒定 1000~ms）、事件 116 帧、特征 533 帧（约 9~Hz/peer，与 esp-radar 窗口率一致），\textbf{0 坏 CRC}（证据：\path{m2_verify_run7.log}）。双链路复核抽样：60~s 特征帧 1082 帧（两 MAC 各 541 帧，约 9~Hz/peer）、心跳 59 帧、0 坏 CRC，特征流速率与设计一致（证据：\path{a6_m2_0350.log}）。
+
+\textbf{无线扰动恢复。}执行 \texttt{wifi\_scan} 使 RX 跳扫离开信道，特征流停止 2.6~s；扫描回到工作信道后特征流立即恢复（证据：\path{m2_verify_run11_scan.log}）。该实验同时验证了信道一致性是 CSI 链路收发的前提——M2 调试期曾因 RX 固定信道 6 而 AP 实际在信道 4 而静默无数据，最终以“STA 跟随 AP 信道”解决。
+
+\textbf{上电恢复。}RX 重启后链路表从 NVS 恢复、TCP console 进入监听、随后获取 IP（证据：\path{m2_verify_run10_boot.log}）。
+
+\section{双链路联调与 NVS 恢复}\label{sec:m4result}
+
+\textbf{双链路标定。}TX1/TX2 注册为 zone1/zone2 后分别清场标定（\texttt{train 15}）：TX1 阈值 681、噪声底 227；TX2 阈值 20367、噪声底 6789（centi-var）——两链路噪声底差异近 30 倍，直观证明逐链路独立标定的必要性；\texttt{threshold save} 持久化成功（证据：\path{m4_register_train_run1.log}）。
+
+\textbf{串扰隔离台架证据。}复位 TX2 制造 5.08~s 静默窗，期间 TX1 特征流零间隙，全部事件帧的 MAC 归因正确——证明“按源 MAC 分发 + per-peer 上下文”的链路隔离设计有效（证据：\path{m4_register_train_run1.log}，解析脚本 \path{scripts/m4_analyze.py}）。需要说明：这是近距台架下的功能级证据，空间部署后的“分别遮挡”串扰验收仍按第\ref{chap:deploy}章用例⑤执行。
+
+\textbf{NVS 重启恢复。}软重启（rst:0xc）后，双 peer 携带阈值在 1.26~s 内恢复（\texttt{peer list} 回读 thr=681/20367 与断电前一致），4.9~s 时获取 IP（证据：\path{m4_restart_nvs_run4.log}），远优于“断电恢复 $\le$30~s”的指标承诺。
+
+\textbf{长程帧统计。}双链路会话累计 1860 帧 0x11 特征帧 + 293 帧 0x10 事件帧，\textbf{0 坏 CRC}（证据：\path{m4_register_train_run1.log}）。
+
+\section{上位机冒烟}\label{sec:smoke}
+
+\path{pc_dashboard/ui_smoke.py} 以 SimSource 仿真数据源驱动完整 UI：实测 \textbf{17/17 检查项通过}，运行 60~s 后自动退出、退出码 0；生成的 CSV 首行与 10 列表头定义精确一致（\texttt{Store.header\_matches}）。回放缓冲、事件表、曲线数据结构与卡片状态机在冒烟中同步覆盖（证据：\path{pc_dashboard/ui_smoke.py}，2026-10-28 运行记录）。上位机实机串口运行截图见第\ref{chap:deploy}章占位。
+
+\section{台架验证小结}
+
+综合上述实验：协议两端实现一致（20/20）；数据链路在 2~Mbps 串口上长期零 CRC 错误；特征流速率、心跳节拍与设计一致；事件 MAC 归因与链路隔离有效；NVS 断电恢复链路完整。台架功能验证全部通过，指标级验证（检出率、误报率、丢帧率、恢复时间在真实空间下的取值）待现场验收。

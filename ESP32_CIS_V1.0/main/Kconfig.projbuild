@@ -1,0 +1,88 @@
+# ESP32_CIS_V1.0 · CIS 配置（实施计划 §4）
+
+menu "CIS Configuration"
+
+choice CIS_MODE
+    prompt "CIS working mode"
+    default CIS_MODE_ROUTER
+    help
+        ROUTER：全节点连同一路由器，信道跟随 AP（默认）。
+        DIRECT：无路由场地，RX 固定信道混杂直收 TX 的 ESP-NOW 广播。
+    config CIS_MODE_ROUTER
+        bool "Router mode (all nodes join same AP)"
+    config CIS_MODE_DIRECT
+        bool "Direct mode (fixed channel promiscuous RX)"
+endchoice
+
+config CIS_DEFAULT_CHANNEL
+    int "Default WiFi channel (radar init / direct mode / SoftAP fallback)"
+    range 1 14
+    default 6
+    help
+        路由器 2.4G 固定信道（实施计划 §7：信道 6）。esp-radar 以此信道起收，
+        ROUTER 模式下 STA 连上后自动跟随 AP。
+
+config CIS_UDP_REPORT_DEFAULT
+    bool "Enable UDP report by default (port 3333)"
+    default n
+
+config CIS_UDP_REPORT_PORT
+    int "UDP report port"
+    range 1 65535
+    default 3333
+
+config CIS_TCP_CONSOLE_PORT
+    int "TCP console port (wireless calibration REPL)"
+    range 1 65535
+    default 2323
+
+config CIS_FEATURE_RATE_HZ
+    int "Feature stream (0x11) rate per peer (Hz)"
+    range 1 50
+    default 10
+
+config CIS_MOTION_CONFIRM_FRAMES
+    int "Motion confirm windows N (consecutive over-threshold)"
+    range 1 100
+    default 10
+    help
+        连续 N 窗超阈判运动（10 窗 @10Hz = 1s 滞回）。
+
+config CIS_STILL_CONFIRM_FRAMES
+    int "Still confirm windows M (consecutive under-threshold)"
+    range 1 200
+    default 25
+    help
+        连续 M 窗低于阈值判静止 → PRESENCE（25 窗 @10Hz = 2.5s，满足
+        M2 判据"停走 3s 内 EVENT STILL"）。
+
+config CIS_PRESENCE_HOLD_S
+    int "Presence hold seconds before returning to IDLE"
+    range 1 300
+    default 10
+
+config CIS_DEFAULT_THRESHOLD
+    int "Default detection threshold before training (centi-var)"
+    range 1 65535
+    default 30
+    help
+        未 train 时的初始阈值（var 刻度 = raw² × 100；M1 静态噪声底 ≈ 1）。
+
+config CIS_TRAIN_SECONDS
+    int "Default train duration (seconds)"
+    range 5 300
+    default 15
+
+config CIS_TRAIN_MARGIN_PCT
+    int "Train threshold margin over noise floor (percent)"
+    range 100 1000
+    default 300
+    help
+        阈值 = 噪声底 × margin/100。验收可 `threshold <mac> <val>` ±10~20% 微调。
+
+config CIS_TRAIN_MIN_THRESHOLD
+    int "Train minimum absolute threshold (centi-var)"
+    range 1 65535
+    default 15
+
+endmenu

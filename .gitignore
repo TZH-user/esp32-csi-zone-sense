@@ -1,0 +1,17 @@
+# ===== ESP-IDF 固件构建产物（csi_tx_v1 / csi_tx_c3_v1 / fw_idle / ESP32_CIS_V1.0 的 build，约 600M）=====
+build/
+managed_components/
+sdkconfig.old
+
+# ===== Python 缓存 =====
+__pycache__/
+*.pyc
+
+# ===== data/ 下的采集 CSV（data 其他文件一律保留）=====
+data/**/*.csv
+
+# ===== 仅顶层日志（如 flash_tx_tx3.log；子目录内日志不受影响）=====
+/*.log
+
+# ===== Windows 保留设备名文件（误重定向产物，git for Windows 无法索引）=====
+pc_dashboard/nul

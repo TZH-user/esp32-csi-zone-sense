@@ -1,0 +1,94 @@
+% ============ 第3章 硬件平台与开发环境 ============
+\chapter{硬件平台与开发环境}\label{chap:hw}
+
+\section{硬件平台}\label{sec:boardsec}
+
+系统共使用 4 块开发板：1 块 ESP32-S3 作为接收节点（RX），2 块经典 ESP32 与 1 块 ESP32-C3 作为发送节点（TX1--TX3），另有一块 ESP32-S3 作热备。表\ref{tab:board}给出板卡清单。板卡均为裸模组形态，除 Flash/RAM 外不假设任何板载外设；各板的物理 MAC 以 esptool 实测读出为唯一身份锚点（COM 口号会随重插变化，不可作为身份依据）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{板卡清单与身份映射}
+  \label{tab:board}
+  \begin{tabular}{p{2.3cm}p{1.0cm}p{2.9cm}p{3.7cm}p{3.1cm}}
+    \toprule
+    \textbf{板} & \textbf{角色} & \textbf{芯片} & \textbf{物理 MAC（esptool 实测）} & \textbf{CSI 源 MAC} \\
+    \midrule
+    S3\#1（16~MB Flash） & RX & 双核 Xtensa LX7 & DC:DA:0C:1D:AE:10 & --- \\
+    经典\#1 & TX1 & ESP32 & 8C:94:DF:A1:DD:D0 & 1a:00:00:00:00:00 \\
+    C3 & TX2 & 单核 RISC-V & E4:B0:63:33:F0:40 & 1a:00:00:00:00:01 \\
+    经典\#2 & TX3 & ESP32 & 8C:94:DF:A1:DA:4C & 烧前须改为 1a:00:00:00:00:02 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+三点说明：（1）\textbf{CSI 源 MAC 与物理 MAC 不同}——TX 固件内经 \texttt{esp\_wifi\_set\_mac} 有意设置了本地管理地址作为 CSI 帧的源 MAC，RX 端注册 peer、按源 MAC 分发、事件/特征帧携带的 MAC 均为该 CSI 源 MAC；各 TX 源 MAC 必须互不相同，否则多链路在 RX 端混叠。（2）TX3（经典\#2）联调期间过热进不了下载模式，待冷却重插后先烧轻载固件再转正式任务，三链路完整联调待其恢复。（3）RX 的 S3 模组配 16~MB Flash 与 8~MB Octal PSRAM，固件使用自定义分区表（factory@0x20000、nvs、coredump），IPEX 外置天线接口保证射频裕量；BOOT/EN 按键用于下载模式与复位。
+
+\section{开发环境}
+
+\begin{table}[htbp]
+  \centering
+  \caption{开发环境与工具链}
+  \label{tab:env}
+  \begin{tabular}{p{5.2cm}p{8.8cm}}
+    \toprule
+    \textbf{项} & \textbf{配置} \\
+    \midrule
+    固件框架 & ESP-IDF v5.5.6（确定性环境脚本激活） \\
+    CSI 组件 & esp-radar 0.3.4（esp-csi 官方组件，组件管理器缓存） \\
+    RX 工程 & \path{ESP32_CIS_V1.0}（目标 esp32s3，自研模块 cis\_*） \\
+    TX 工程 & \path{csi_tx_v1}（经典 ESP32）、\path{csi_tx_c3_v1}（ESP32-C3），均为官方 csi\_send 示例改配置 \\
+    上位机 & Python：PySide6 + pyqtgraph + pyserial（协议编解码纯标准库） \\
+    烧录与备份 & \path{scripts/flash_rx.bat}、\path{scripts/flash_tx.bat}（内置 MAC 门禁与源 MAC 防呆）、\path{scripts/backup_flash.sh}（烧录前整片备份） \\
+    组网 & 路由器 1003-k（2.4~GHz，20~MHz；STA 信道自动跟随 AP，实测信道 4） \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{系统连接}
+
+系统拓扑如图\ref{fig:topo}所示。全部节点以 STA 模式关联路由器 1003-k，从而工作在同一信道（跟随 AP，实测信道 4；部署时按标定 SOP 将路由器手动固定信道与 20~MHz 带宽）；CSI 感知链路本身为 TX$\to$RX 的同信道直收，不依赖路由器转发。RX 另开 SoftAP ``CIS\_RX-ae10'' 作为无路由场地的兜底接入；预留直收模式（固定信道混杂接收，编译期选择）应对答辩场地无路由器的情况。上行通道以 COM3 串口（USB-Serial-JTAG，2{,}000{,}000-8-N-1）为主，UDP 3333 为可选副通道，TCP 2323 提供无线 REPL 控制台。
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      >=Stealth,
+      box/.style={draw, rounded corners=2pt, align=center, font=\footnotesize\songti,
+        inner sep=3pt},
+      tx/.style={box, fill=orange!10},
+      rx/.style={box, fill=blue!10},
+      net/.style={box, fill=green!10},
+      pc/.style={box, fill=gray!8},
+      wl/.style={->, thick, dashed},
+      csi/.style={->, very thick},
+      wire/.style={<->, very thick}
+    ]
+    \node[net] (ap) at (0,2.9) {路由器 1003-k\\[-2pt]{\scriptsize 2.4~GHz 20~MHz（跟随实测信道4）}};
+    \node[tx] (tx3) at (-5.7,0.4) {TX3 经典\#2\\[-2pt]{\scriptsize 1a:00:00:00:00:02}\\[-2pt]{\scriptsize （待恢复）}};
+    \node[tx] (tx1) at (-4.0,-1.3) {TX1 经典\#1\\[-2pt]{\scriptsize zone1 / 1a:00:00:00:00:00}};
+    \node[tx] (tx2) at (-5.9,-3.1) {TX2 ESP32-C3\\[-2pt]{\scriptsize zone2 / 1a:00:00:00:00:01}};
+    \node[rx] (rx) at (1.6,-1.3) {ESP32-S3 RX\\[-2pt]{\scriptsize DC:DA:0C:1D:AE:10}\\[-2pt]{\scriptsize esp-radar 多 peer 检测}};
+    \node[pc] (pc) at (6.3,-1.3) {PC 上位机\\[-2pt]{\scriptsize PySide6+pyqtgraph}\\[-2pt]{\scriptsize 卡片/曲线/事件/CSV}};
+    \draw[wl] (tx1) -- (ap); \draw[wl] (tx2) -- (ap);
+    \draw[wl] (tx3) -- (ap); \draw[wl] (rx) -- (ap);
+    \draw[csi] (tx1) -- node[above, font=\scriptsize\songti]{CSI 直收} (rx);
+    \draw[csi] (tx2) -- (rx);
+    \draw[csi, dashed] (tx3) -- (rx);
+    \draw[wire] (rx) -- (pc);
+    \node[below=5pt, font=\scriptsize\songti] at (4.0,-1.3) {COM3@2M};
+    \draw[->, thick, dotted] (rx.north east) to[bend left=30] (pc.north west);
+    \node[align=center, font=\scriptsize\songti] at (4.0,0.35)
+      {TCP 2323 REPL\\[-2pt]UDP 3333 可选};
+  \end{tikzpicture}
+  \caption{系统拓扑：1 收 3 发 + 路由器组网 + 串口主上行（虚线为各节点 STA 关联路由器、信道跟随 AP；CSI 链路为 TX$\to$RX 同信道直收，不依赖路由器转发）}
+  \label{fig:topo}
+\end{figure}
+
+实物连接照片（RX/TX 板卡、天线、整机）见图\ref{fig:photo-hw}。
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox[c][4.2cm][c]{0.86\textwidth}{\centering
+    \textcolor{red}{\textbf{【实测待填：实物照片——RX（ESP32-S3+外置天线）、TX 板卡与整机连接】}}}}
+  \caption{系统实物连接照片（待现场拍摄替换）}
+  \label{fig:photo-hw}
+\end{figure}

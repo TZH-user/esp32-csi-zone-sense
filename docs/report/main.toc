@@ -1,0 +1,91 @@
+ \cftsetpnumwidth {\widthof {1}-1pt} 
+ \cftsetpnumwidth {\widthof {I}-1pt} 
+ \cftsetpnumwidth {\widthof {II}-1pt} 
+ \cftsetpnumwidth {\widthof {III}-1pt} 
+ \cftsetpnumwidth {\widthof {1}-1pt} 
+\setcounter {tocdepth}{2}
+\contentsline {chapter}{\numberline {1}引言}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}背景}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}选题与任务}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.3}本文工作与组织}{1}{section.1.3}%
+ \cftsetpnumwidth {\widthof {2}-1pt} 
+ \cftsetpnumwidth {\widthof {3}-1pt} 
+\contentsline {chapter}{\numberline {2}设计指标}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}题目要求逐条落实与指标承诺}{3}{section.2.1}%
+ \cftsetpnumwidth {\widthof {4}-1pt} 
+\contentsline {chapter}{\numberline {3}硬件平台与开发环境}{4}{chapter.3}%
+\contentsline {section}{\numberline {3.1}硬件平台}{4}{section.3.1}%
+\contentsline {section}{\numberline {3.2}开发环境}{4}{section.3.2}%
+\contentsline {section}{\numberline {3.3}系统连接}{4}{section.3.3}%
+ \cftsetpnumwidth {\widthof {5}-1pt} 
+ \cftsetpnumwidth {\widthof {6}-1pt} 
+\contentsline {chapter}{\numberline {4}系统设计}{6}{chapter.4}%
+\contentsline {section}{\numberline {4.1}顶层架构}{6}{section.4.1}%
+\contentsline {section}{\numberline {4.2}二进制上报协议}{6}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}帧格式与帧类型}{6}{subsection.4.2.1}%
+ \cftsetpnumwidth {\widthof {7}-1pt} 
+ \cftsetpnumwidth {\widthof {8}-1pt} 
+\contentsline {subsection}{\numberline {4.2.2}串口流式解析与失步重同步}{8}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}扰动检测算法}{8}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}滑动窗统计与 RSSI 突变过滤}{8}{subsection.4.3.1}%
+ \cftsetpnumwidth {\widthof {9}-1pt} 
+\contentsline {subsection}{\numberline {4.3.2}滞回状态机}{9}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}现场标定与持久化}{9}{section.4.4}%
+ \cftsetpnumwidth {\widthof {10}-1pt} 
+\contentsline {section}{\numberline {4.5}系统设计与微机原理知识点的对应}{10}{section.4.5}%
+\contentsline {section}{\numberline {4.6}上位机设计}{10}{section.4.6}%
+ \cftsetpnumwidth {\widthof {11}-1pt} 
+\contentsline {chapter}{\numberline {5}关键模块实现}{11}{chapter.5}%
+\contentsline {section}{\numberline {5.1}固件（ESP32\_CIS\_V1.0）}{11}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}cis\_detect：累加器与滑窗统计}{11}{subsection.5.1.1}%
+ \cftsetpnumwidth {\widthof {12}-1pt} 
+ \cftsetpnumwidth {\widthof {13}-1pt} 
+\contentsline {subsection}{\numberline {5.1.2}cis\_report：帧发送与心跳}{13}{subsection.5.1.2}%
+ \cftsetpnumwidth {\widthof {14}-1pt} 
+\contentsline {subsection}{\numberline {5.1.3}cis\_console：双 REPL}{14}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}cis\_peer：链路表与 NVS 持久化}{14}{subsection.5.1.4}%
+ \cftsetpnumwidth {\widthof {15}-1pt} 
+\contentsline {subsection}{\numberline {5.1.5}cis\_wifi：连网与兜底}{15}{subsection.5.1.5}%
+\contentsline {section}{\numberline {5.2}上位机（pc\_dashboard）}{15}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}protocol：协议编解码与流式解析}{15}{subsection.5.2.1}%
+ \cftsetpnumwidth {\widthof {16}-1pt} 
+\contentsline {subsection}{\numberline {5.2.2}serial\_source：双线程与环形缓冲}{16}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}store：CSV 会话与回放缓冲}{16}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}ui\_main：监控界面}{16}{subsection.5.2.4}%
+ \cftsetpnumwidth {\widthof {17}-1pt} 
+ \cftsetpnumwidth {\widthof {18}-1pt} 
+\contentsline {chapter}{\numberline {6}测试与验证}{18}{chapter.6}%
+\contentsline {section}{\numberline {6.1}协议自测}{18}{section.6.1}%
+\contentsline {section}{\numberline {6.2}数据流与帧质量}{18}{section.6.2}%
+\contentsline {section}{\numberline {6.3}双链路联调与 NVS 恢复}{18}{section.6.3}%
+ \cftsetpnumwidth {\widthof {19}-1pt} 
+\contentsline {section}{\numberline {6.4}上位机冒烟}{19}{section.6.4}%
+\contentsline {section}{\numberline {6.5}台架验证小结}{19}{section.6.5}%
+ \cftsetpnumwidth {\widthof {20}-1pt} 
+\contentsline {chapter}{\numberline {7}现场部署与验收}{20}{chapter.7}%
+\contentsline {section}{\numberline {7.1}部署点位}{20}{section.7.1}%
+\contentsline {section}{\numberline {7.2}现场标定结果}{20}{section.7.2}%
+\contentsline {section}{\numberline {7.3}七条验收用例结果}{20}{section.7.3}%
+ \cftsetpnumwidth {\widthof {21}-1pt} 
+\contentsline {section}{\numberline {7.4}30 分钟长稳与上位机实机运行}{21}{section.7.4}%
+ \cftsetpnumwidth {\widthof {22}-1pt} 
+\contentsline {chapter}{\numberline {8}总结与展望}{22}{chapter.8}%
+\contentsline {section}{\numberline {8.1}工作总结}{22}{section.8.1}%
+\contentsline {section}{\numberline {8.2}局限与已知问题}{22}{section.8.2}%
+\contentsline {section}{\numberline {8.3}展望}{22}{section.8.3}%
+ \cftsetpnumwidth {\widthof {23}-1pt} 
+ \cftsetpnumwidth {\widthof {24}-1pt} 
+\contentsline {chapter}{\numberline {9}分工}{24}{chapter.9}%
+ \cftsetpnumwidth {\widthof {25}-1pt} 
+\setcounter {tocdepth}{2}
+\addtolength {\cftchapnumwidth }{2.6em}
+\contentsline {chapter}{\numberline {附录A}协议帧格式总表}{25}{appendix.A}%
+ \cftsetpnumwidth {\widthof {26}-1pt} 
+\contentsline {chapter}{\numberline {附录B}工程目录与证据文件索引}{26}{appendix.B}%
+\contentsline {section}{\numberline {B.1}工程目录索引}{26}{section.B.1}%
+\contentsline {section}{\numberline {B.2}证据文件索引}{26}{section.B.2}%
+ \cftsetpnumwidth {\widthof {27}-1pt} 
+\contentsline {section}{\numberline {B.3}【实测待填】占位清单}{27}{section.B.3}%
+\addtolength {\cftchapnumwidth }{-2.6em}
+ \cftsetpnumwidth {\widthof {28}-1pt} 
+\contentsline {chapter}{参考文献}{28}{appendix*.21}%

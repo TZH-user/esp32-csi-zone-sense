@@ -1,0 +1,76 @@
+% ============ 第7章 现场部署与验收（待执行） ============
+\chapter{现场部署与验收}\label{chap:deploy}
+
+本章为空间部署后的现场验收安排。除部署方法与判据（来自标定 SOP 与验收记录表，属设计内容）外，\textbf{全部结果待现场执行后填写}，当前一律以红色占位标注，不预设任何数值。
+
+\section{部署点位}
+
+部署遵循标定 SOP：每个监测点 1 块 TX，TX 与 RX 分居活动区两侧、链路中点覆盖活动区；天线竖直同极化；离地 $\ge$1~m、离墙与金属大反射体 $\ge$0.5~m；胶带标记位置并拍照存档。路由器 2.4~GHz 信道手动固定、20~MHz 带宽、关闭自动信道与频段合一。
+
+\textcolor{red}{\textbf{【实测待填：场地信息——房间/楼层/尺寸/路由器实际信道】}}
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox[c][4.2cm][c]{0.86\textwidth}{\centering
+    \textcolor{red}{\textbf{【实测待填：部署点位图与点位照片】}}}}
+  \caption{部署点位图与照片（待现场拍摄替换）}
+  \label{fig:photo-deploy}
+\end{figure}
+
+\section{现场标定结果}
+
+按 SOP 每链路 $\le$30~s 完成 \texttt{peer add} $\to$ 清场 \texttt{train 15} $\to$ \texttt{threshold save}，结果填入表\ref{tab:calib}并逐链路复验（静置 30~s 无事件、走动 2~s 内报 MOTION、停走 3~s 内报 STILL）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{现场标定结果表（待现场填写）}
+  \label{tab:calib}
+  \begin{tabular}{llllll}
+    \toprule
+    \textbf{链路} & \textbf{CSI 源 MAC} & \textbf{区域名} & \textbf{噪声底（c）} & \textbf{阈值（c）} & \textbf{threshold save} \\
+    \midrule
+    1 & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} \\
+    2 & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} \\
+    3 & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} & \textcolor{red}{\textbf{【实测待填】}} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{七条验收用例结果}\label{sec:accept}
+
+验收按 \path{docs/验收记录表.md} 逐条执行，判定口径为通过/降级/不通过（隔墙、微动等场景允许注明降级与灵敏度极限，不许调参凑过）。七条用例及判据见表\ref{tab:accept}，结果待现场填写。
+
+\begin{table}[htbp]
+  \centering
+  \caption{七条验收用例与结果（结果待现场填写）}
+  \label{tab:accept}
+  \begin{tabular}{p{0.5cm}p{6.0cm}p{4.6cm}p{2.6cm}}
+    \toprule
+    \textbf{号} & \textbf{用例} & \textbf{判据} & \textbf{结果} \\
+    \midrule
+    1 & 静置 30~min 误报 & 任一 10~min 窗误报 $\le$2 次 & \textcolor{red}{\textbf{【实测待填】}} \\
+    2 & 0.5~m/s 横穿 10 次 & $\ge$9 次 2~s 内报 MOTION 且 MAC 正确 & \textcolor{red}{\textbf{【实测待填】}} \\
+    3 & 1--2~m 挥手 & 3~s 内检出（检不出记灵敏度极限） & \textcolor{red}{\textbf{【实测待填】}} \\
+    4 & 隔墙走动 & 重标定后走动可检（存在检测可降级） & \textcolor{red}{\textbf{【实测待填】}} \\
+    5 & 双区并发 & 事件 MAC 归因全程正确、无串扰 & \textcolor{red}{\textbf{【实测待填】}} \\
+    6 & 10~min 丢帧率 & $<$1\%（上位机三层计数与心跳对账） & \textcolor{red}{\textbf{【实测待填】}} \\
+    7 & 断电重启 & $\le$30~s 恢复且链路表/阈值一致 & \textcolor{red}{\textbf{【实测待填】}} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{30 分钟长稳与上位机实机运行}
+
+长稳与用例1同跑：上位机连续记录 30~min，观察无崩溃/卡死、CSV 持续写入、顶栏帧率与丢帧读数正常。
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox[c][4.2cm][c]{0.86\textwidth}{\centering
+    \textcolor{red}{\textbf{【实测待填：上位机实机运行截图——区域卡片/实时曲线/事件表】}}}}\\[6pt]
+  \fbox{\parbox[c][3.6cm][c]{0.86\textwidth}{\centering
+    \textcolor{red}{\textbf{【实测待填：30~min 长稳曲线截图（var 曲线+事件竖线+丢帧读数）】}}}}
+  \caption{上位机实机运行与长稳截图（待现场截取替换）}
+  \label{fig:photo-ui}
+\end{figure}
+
+\textcolor{red}{\textbf{【实测待填：演示照片/视频截图】}}

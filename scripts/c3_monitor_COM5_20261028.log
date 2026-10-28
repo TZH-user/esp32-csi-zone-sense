@@ -1,0 +1,102 @@
+I (186) esp_image: segment 4: paddr=000d5b1c vaddr=403833ec sizeESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xc (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403840b0
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5820,len:0x146c
+load:0x403cbf10,len:0xc30
+load:0x403ce710,len:0x2f98
+entry 0x403cbf1a
+I (15) boot: ESP-IDF v5.5.6 2nd stage bootloader
+I (15) boot: compile time Oct 28 2026 00:27:10
+I (15) boot: chip revision: v0.4
+I (16) boot.esp32c3: SPI Speed      : 80MHz
+I (19) boot.esp32c3: SPI Mode       : DIO
+I (23) boot.esp32c3: SPI Flash Size : 2MB
+I (27) boot: Partition Table:
+I (29) boot: ## Label            Usage          Type ST Offset   Length
+I (36) boot:  0 nvs              WiFi data        01 02 0000b000 00006000
+I (42) boot:  1 phy_init         RF data          01 01 00011000 00001000
+I (49) boot:  2 factory          factory app      00 00 00020000 00100000
+I (55) esp_image: segment 0: paddr=00020020 vaddr=3c0a0020 size=19a60h (105056) map
+I (79) esp_image: segment 1: paddr=00039a88 vaddr=3fc94a00 size=0319ch ( 12700) load
+I (82) esp_image: segment 2: paddr=0003cc2c vaddr=40380000 size=033ech ( 13292) load
+I (85) esp_image: segment 3: paddr=00040020 vaddr=42000020 size=95af4h (613108) map
+I (186) esp_image: segment 4: paddr=000d5b1c vaddr=403833ec size=114f8h ( 70904) load
+I (199) esp_image: segment 5: paddr=000e701c vaddr=50000000 size=00020h (    32) load
+I (206) boot: Loaded app from partition at offset 0x20000
+I (212) cpu_start: Unicore app
+I (220) cpu_start: GPIO 20 and 21 are used as console UART I/O pins
+I (221) cpu_start: Pro cpu start user code
+I (221) cpu_start: cpu freq: 160000000 Hz
+I (223) app_init: Application information:
+I (226) app_init: Project name:     csi_tx_c3_v1
+I (231) app_init: App version:      1
+I (234) app_init: Compile time:     Oct 28 2026 02:45:02
+I (239) app_init: ELF file SHA256:  15399d679...
+I (244) app_init: ESP-IDF:          v5.5.6
+I (247) efuse_init: Min chip rev:     v0.3
+I (251) efuse_init: Max chip rev:     v1.99 
+I (255) efuse_init: Chip rev:         v0.4
+I (259) heap_init: Initializing. RAM available for dynamic allocation:
+I (265) heap_init: At 3FC9C000 len 00024000 (144 KiB): RAM
+I (270) heap_init: At 3FCC0000 len 0001C710 (113 KiB): Retention RAM
+I (276) heap_init: At 3FCDC710 len 00002950 (10 KiB): Retention RAM
+I (282) heap_init: At 50000020 len 00001FC8 (7 KiB): RTCRAM
+I (289) spi_flash: detected chip: boya
+I (291) spi_flash: flash io: dio
+W (294) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (307) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (313) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (319) main_task: Started on CPU0
+I (322) main_task: Calling app_main()
+I (334) pp: pp rom version: 9387209
+I (334) net80211: net80211 rom version: 9387209
+I (336) wifi:wifi driver task: 3fca4b70, prio:23, stack:6656, core=0
+I (344) wifi:wifi firmware version: c6dceae
+I (344) wifi:wifi certification version: v7.0
+I (346) wifi:config NVS flash: enabled
+I (350) wifi:config nano formatting: disabled
+I (354) wifi:Init data frame dynamic rx buffer num: 32
+I (359) wifi:Init static rx mgmt buffer num: 5
+I (363) wifi:Init management short buffer num: 32
+I (367) wifi:Init dynamic tx buffer num: 128
+I (371) wifi:Init static tx FG buffer num: 2
+I (375) wifi:Init static rx buffer size: 2212
+I (380) wifi:Init static rx buffer num: 10
+I (383) wifi:Init dynamic rx buffer num: 32
+I (388) wifi_init: rx ba win: 6
+I (390) wifi_init: accept mbox: 6
+I (393) wifi_init: tcpip mbox: 32
+I (396) wifi_init: udp mbox: 6
+I (399) wifi_init: tcp mbox: 6
+I (402) wifi_init: tcp tx win: 5760
+I (405) wifi_init: tcp rx win: 5760
+I (408) wifi_init: tcp mss: 1440
+I (411) wifi_init: WiFi IRAM OP enabled
+I (415) wifi_init: WiFi RX IRAM OP enabled
+I (419) phy_init: phy_version 1235,8bd8c6fc,Apr 13 2026,18:46:20
+I (459) wifi:mode : sta (e4:b0:63:33:f0:40)
+I (459) wifi:enable tsf
+I (461) wifi:Set ps type: 0, coexist: 0
+
+I (462) wifi:enable tsf
+I (911) wifi:new:<4,1>, old:<1,0>, ap:<255,255>, sta:<4,1>, prof:1, snd_ch_cfg:0x0
+I (912) wifi:state: init -> auth (0xb0)
+I (914) wifi:state: auth -> assoc (0x0)
+I (920) wifi:state: assoc -> run (0x10)
+I (1027) wifi:connected with 1003-k, aid = 12, channel 4, 40U, bssid = 94:e3:ee:f0:df:64
+I (1028) wifi:security: WPA2-PSK, phy: bgn, rssi: -32, cipher(pairwise:0x3, group:0x3), pmf:0
+I (1033) wifi:pm start, type: 0
+
+I (1035) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us
+I (1044) wifi:set rx beacon pti, rx_bcn_pti: 0, bcn_timeout: 25000, mt_pti: 0, mt_time: 10000
+I (1090) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (3120) wifi:<ba-add>idx:0 (ifx:0, 94:e3:ee:f0:df:64), tid:0, ssn:4, winSize:64
+I (4201) esp_netif_handlers: sta ip: 192.168.2.243, mask: 255.255.255.0, gw: 192.168.2.1
+I (4202) csi_send_c3: got ip:192.168.2.243
+I (4202) csi_send_c3: connected to AP 1003-k, STA channel follows AP
+I (4208) ESPNOW: espnow [version: 2.0] init
+I (4212) csi_send_c3: ================ CSI SEND ================
+I (4218) csi_send_c3: ap: 1003-k, send_frequency: 100, mac: 1a:00:00:00:00:01

@@ -1,0 +1,28 @@
+% ============ 第2章 设计指标 ============
+\chapter{设计指标}
+
+\section{题目要求逐条落实与指标承诺}
+
+依据题目3要求与本组理解，系统须同时满足“多监测点区分”“实时检测上报”“可靠传输”“现场可标定”“断电可恢复”五类能力。表\ref{tab:metric}给出逐条指标承诺、对应的实现机制与验证落点。其中带 $\dagger$ 的指标已在台架联调中验证（第\ref{chap:verify}章），带 $\ast$ 的指标依赖空间部署后的现场验收（第\ref{chap:deploy}章，待执行）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{设计指标承诺表}
+  \label{tab:metric}
+  \begin{tabular}{p{4.6cm}p{4.6cm}p{4.2cm}}
+    \toprule
+    \textbf{指标项} & \textbf{承诺值 / 实现机制} & \textbf{验证落点} \\
+    \midrule
+    监测点数 & 3 条链路（TX1/TX2/TX3），固件按源 MAC 分发，容量 8 槽 & \S\ref{sec:arch}、\S\ref{sec:m4result}$\dagger$ \\
+    特征流速率 & 每 peer 10~Hz（1--50 可调），检测窗约 10 包/窗 & \S\ref{sec:alg}$\dagger$ \\
+    运动事件响应 & $\le 2$~s（N=10 窗确认 $\approx$1~s + 2~Hz 重发） & \S\ref{sec:alg}$\ast$ \\
+    停走回归事件 & $\le 3$~s（M=25 窗 @10~Hz $=$ 2.5~s） & \S\ref{sec:alg}$\ast$ \\
+    丢帧率 & 10~min 内 $<$ 1\%（三层丢帧计数） & \S\ref{sec:link}$\dagger$、\S\ref{sec:accept}$\ast$ \\
+    断电恢复 & $\le 30$~s（NVS 持久化，实测 4.9~s 联网、1.26~s 链路表恢复） & \S\ref{sec:m4result}$\dagger$ \\
+    现场标定 & 每链路 $\le$ 30~s（train 15~s + 保存），挪动即作废重标 & \S\ref{sec:calib} \\
+    验收方式 & 台架（功能/数据流）与场地（七条用例）两级验收 & \S\ref{sec:accept}$\ast$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+需要说明的是：运动/存在类指标的最终数值依赖真实空间布局下的噪声底，近距台架（板间距 $<$ 0.5~m、RSSI 饱和）只能验证功能正确性，不能给出灵敏度结论；相关验收按第\ref{chap:deploy}章的七条用例在现场执行。

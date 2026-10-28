@@ -1,0 +1,217 @@
+% ============ 第4章 系统设计 ============
+\chapter{系统设计}\label{chap:design}
+
+\section{顶层架构}\label{sec:arch}
+
+系统采用“1 收 N 发、按源 MAC 分发”的架构，如图\ref{fig:arch}所示。设计要点有四：
+
+（1）\textbf{链路区分}。各 TX 固件以互不相同的本地管理地址（CSI 源 MAC）发包；RX 端 esp-radar 组件以 \texttt{filter\_mac} 做引导过滤，注册精确 peer 后由其按源 MAC 分发，每个源 MAC 对应一条独立检测链路。不使用通配 peer：实测若把 FF:FF:FF:FF:FF:FF 设为默认 peer，同信道全部邻居流量（一屏 7+ 个 MAC）都会进入处理管线，检测窗被``Timestamp delta out of range''持续清空、回调饿死。故默认 peer 固定为 TX1 源 MAC 作引导，其余链路经 REPL 命令注册。
+
+（2）\textbf{检测自管}。检测统计、状态机、阈值与训练全部由自研模块 cis\_detect 管理（per-peer 上下文），不触碰 esp-radar 自带的单例检测器，避免多 peer 互相覆盖。
+
+（3）\textbf{组网双模}。主模式为路由器模式：全节点连 1003-k，STA 信道自动跟随 AP，无需硬编码；备份模式为直收模式（编译期 \texttt{CONFIG\_CIS\_MODE\_DIRECT}），TX 定信道广播、RX \texttt{esp\_wifi\_set\_channel} 固定信道混杂直收，应对无路由器场地。RX 另开 SoftAP 兜底。
+
+（4）\textbf{通道分层}。上行以串口为主通道（2~Mbps，带宽余量充足）；TCP 2323 REPL 与 UDP 3333 仅同网段可达（实测 PC 与节点网段隔离），故无线通道定位为“标定/调试”而非数据主通道。
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      >=Stealth,
+      blk/.style={draw, rounded corners=2pt, align=center, font=\footnotesize\songti,
+        minimum height=0.95cm, inner sep=4pt},
+      txs/.style={blk, fill=orange!10},
+      fw/.style={blk, fill=blue!8},
+      pcx/.style={blk, fill=gray!8},
+      arr/.style={->, thick},
+      bus/.style={->, very thick, double},
+      lab/.style={font=\footnotesize\songti, align=center}
+    ]
+    \node[txs] (tx) {TX1/TX2/TX3\\[-2pt]csi\_send 固件\\[-2pt]100~Hz 发包·源 MAC 各异};
+    \node[fw, below=1.0cm of tx] (radar) {esp-radar 数据通路（esp32s3）\\[-2pt]逐包回调 csi\_filtered\_cb · 检测窗回调 wifi\_radar\_cb\_ex\\[-2pt]filter\_mac 引导过滤 + 精确 peer 分发};
+    \node[fw, below=0.75cm of radar] (detect) {cis\_detect\\[-2pt]8 槽逐包累加器（portMUX 保护）\\[-2pt]滑窗 mean/var/p2p · RSSI 突变过滤 · 滞回 FSM};
+    \node[fw, right=0.8cm of detect] (peer) {cis\_peer\\[-2pt]链路表/阈值\\[-2pt]NVS 持久化};
+    \node[fw, below=0.75cm of detect] (report) {cis\_report\\[-2pt]帧队列 · 事件优先\\[-2pt]USB-Serial-JTAG 直写};
+    \node[fw, right=0.8cm of report] (console) {cis\_console\\[-2pt]双 REPL\\[-2pt]串口 + TCP 2323};
+    \node[fw, left=0.8cm of detect] (wifi) {cis\_wifi\\[-2pt]STA 连网/重连\\[-2pt]30~s 失败开 SoftAP};
+    \node[pcx, below=1.05cm of report] (ss) {pc\_dashboard：serial\_source（读线程+1~MB 环形缓冲）};
+    \node[pcx, below=0.55cm of ss] (parse) {protocol.StreamParser（0xAA55 搜帧 + CRC 准入 + 失步重同步）};
+    \node[pcx, below=0.55cm of parse] (ui) {ui\_main（卡片/曲线/事件表/标定按钮）+ store（CSV/回放）};
+    \draw[bus] (tx) -- (radar);
+    \draw[bus] (radar) -- (detect);
+    \draw[arr, transform canvas={xshift=2pt}] (detect) -- (peer);
+    \draw[arr, transform canvas={xshift=-2pt}] (peer) -- (detect);
+    \draw[bus] (detect) -- (report);
+    \draw[arr] (report) -- (console);
+    \draw[arr, dashed] (wifi) |- (radar.west);
+    \draw[bus] (report) -- node[right, lab]{2~Mbps UART\\[-2pt]（日志/帧交织）} (ss);
+    \draw[bus] (ss) -- (parse);
+    \draw[bus] (parse) -- (ui);
+  \end{tikzpicture}
+  \caption{系统顶层架构与数据流}
+  \label{fig:arch}
+\end{figure}
+
+\section{二进制上报协议}\label{sec:proto}
+
+\subsection{帧格式与帧类型}
+
+上行帧格式如图\ref{fig:frame}所示：2 字节同步字 AA~55，1 字节协议版本（0x01），1 字节帧类型，2 字节小端载荷长度，随后为载荷，帧尾为 2 字节小端 CRC16。CRC 采用 CRC-16/CCITT-FALSE（poly 0x1021、init 0xFFFF、不反射、无终值异或），覆盖范围从 ver 起至载荷末字节（不含同步字与 CRC 本身），标准校验值 \texttt{crc16(b"123456789") == 0x29B1}；固件与上位机两端以同一实现对照（\path{main/cis_protocol.h} $\leftrightarrow$ \path{pc_dashboard/protocol.py}，2026-10-28 逐字段比对一致）。
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      cell/.style={draw, align=center, font=\footnotesize\songti,
+        minimum height=1.0cm, inner sep=2pt, outer sep=0pt},
+      dim/.style={font=\footnotesize\songti, gray}
+    ]
+    \node[cell, minimum width=1.05cm] (a) at (0,0) {AA};
+    \node[cell, minimum width=1.05cm, right=0 of a] (b) {55};
+    \node[cell, minimum width=1.35cm, right=0 of b] (c) {ver\\[-2pt]{\scriptsize 0x01}};
+    \node[cell, minimum width=1.95cm, right=0 of c] (d) {type\\[-2pt]{\scriptsize 帧类型}};
+    \node[cell, minimum width=1.3cm, right=0 of d] (e) {len 低};
+    \node[cell, minimum width=1.3cm, right=0 of e] (f) {len 高};
+    \node[cell, minimum width=3.9cm, right=0 of f] (g) {payload\\[-2pt]{\scriptsize len 字节（表\ref{tab:payload}）}};
+    \node[cell, minimum width=1.3cm, right=0 of g] (h) {CRC 低};
+    \node[cell, minimum width=1.3cm, right=0 of h] (i) {CRC 高};
+    \node[dim, above=0.18cm of a] {2~B};
+    \node[dim, above=0.18cm of c] {1~B};
+    \node[dim, above=0.18cm of d] {1~B};
+    \node[dim, above=0.18cm of e] {2~B};
+    \node[dim, above=0.18cm of g] {len~B};
+    \node[dim, above=0.18cm of h] {2~B};
+    \draw[decorate, decoration={brace, mirror, raise=3pt}, thick]
+      (c.south west) -- (g.south east)
+      node[midway, below=5pt, font=\footnotesize\songti]{CRC-16/CCITT-FALSE 覆盖 ver $\ldots$ payload（小端）};
+    \draw[decorate, decoration={brace, raise=3pt}, thick]
+      (a.north west) -- (b.north east)
+      node[midway, above=5pt, font=\footnotesize\songti]{同步字};
+  \end{tikzpicture}
+  \caption{上行二进制帧格式}
+  \label{fig:frame}
+\end{figure}
+
+帧类型共 5 类，见表\ref{tab:payload}。数值统一采用 centi 刻度定点化：mean/p2p 为 centi-amp（raw$\times$100），var/score/阈值为 centi-var（raw$^2\times$100），超出 u16 范围饱和为 0xFFFF。定点化使帧长固定（特征帧仅 17~B），10~Hz/peer 下的上行带宽约 1~KB/s，2~Mbps 串口余量充足。
+
+\begin{table}[htbp]
+  \centering
+  \caption{帧类型与载荷定义（多字节字段一律小端）}
+  \label{tab:payload}
+  \begin{tabular}{llp{6.6cm}l}
+    \toprule
+    \textbf{类型} & \textbf{名称} & \textbf{载荷字段} & \textbf{频率} \\
+    \midrule
+    0x01 & 心跳 & uptime\_ms(4) peer\_count(1) free\_heap(4) lost\_frames(2)，11~B & 1~Hz \\
+    0x10 & 事件 & mac(6) name\_id(1) state(1) score(2) rssi(1) ts\_ms(4)，15~B & 跳变即时+MOTION 2~Hz \\
+    0x11 & 特征流 & mac(6) ts\_ms(4) mean(2) var(2) p2p(2) rssi(1)，17~B & 10~Hz/peer \\
+    0x20 & 日志 & ASCII 文本（变长，train 提示等） & 按需 \\
+    0x30 & 标定 & mac(6) train\_s(2) threshold(2) noise\_floor(2)，12~B & train 结束 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+其中事件帧 state 字段取 0/1/2 分别对应静止（IDLE）、运动（MOTION）、存在（PRESENCE），score 为触发时窗方差（centi-var），与阈值直接可比。固件侧 CRC 实现如下（\path{cis_protocol.h}）：
+
+\begin{lstlisting}[style=cstyle, caption={CRC-16/CCITT-FALSE 固件实现（cis\_protocol.h）}]
+/* CRC16-CCITT-FALSE: poly 0x1021, init 0xFFFF */
+static inline uint16_t cis_crc16_ccitt(const uint8_t *data, size_t len)
+{
+    uint16_t crc = 0xFFFF;
+    for (size_t i = 0; i < len; i++) {
+        crc ^= (uint16_t)((uint16_t)data[i] << 8);
+        for (int b = 0; b < 8; b++) {
+            crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021)
+                                 : (uint16_t)(crc << 1);
+        }
+    }
+    return crc;
+}
+\end{lstlisting}
+
+\subsection{串口流式解析与失步重同步}
+
+串口上二进制帧与控制台日志字节交织是设计预期（console REPL 与数据帧共用 USB-Serial-JTAG）。PC 端解析器不依赖任何帧间定时假设，按如下规则工作：全程搜索 0xAA~55 魔数，噪声字节计入丢弃计数；候选帧 CRC 不匹配时只前移 1 字节重扫（失步重同步），避免吞掉嵌在候选帧内部的真帧；载荷长度超过上限（1~KB）的候选头视为噪声前移 1 字节；ver 仅透传不做硬校验，CRC 是唯一准入门槛，以向前兼容版本升级。该设计经协议自测（\S\ref{sec:selftest}）与实机日志交织流验证。
+
+\section{扰动检测算法}\label{sec:alg}
+
+\subsection{滑动窗统计与 RSSI 突变过滤}
+
+esp-radar 的数据通路分两级：逐包回调（WiFi 上下文）与检测窗回调（雷达任务上下文，台架实测约 9--10~Hz/peer）。窗口定义为两次检测窗回调之间的 CSI 包集合（约 10 包/窗）。每个源 MAC 对应一个 8 槽逐包累加器中的槽位，逐包累加单包有效子载波平均幅值 $\text{amp}=\text{mean}(|I+\mathrm{j}Q|)$ 的和、平方和与极值，检测窗回调到期时一次性排出，得三特征：
+\[
+\text{mean}=\frac{1}{W}\sum_{k=1}^{W}\text{amp}_k,\qquad
+\text{var}=\frac{1}{W}\sum_{k=1}^{W}\text{amp}_k^2-\text{mean}^2,\qquad
+\text{p2p}=\max_k(\text{amp}_k)-\min_k(\text{amp}_k)
+\]
+其中 $W$ 为窗内有效包数。以 var 为判决量（人扰动信道时方差增长远快于均值漂移），mean/p2p 供上位机作曲线展示与诊断。
+
+AGC 增益跳变是本算法的主要误报源：ESP32 的 CSI 不携带 AGC 信息，射频前端增益切换表现为整窗幅值乘性跳变，无法按加性噪声滤除\cite{ref:agc185,ref:csisim}。本设计在逐包回调中实施 RSSI 突变过滤：$|\Delta\text{RSSI}|>6$~dB 的包不进滑窗，且整窗标记 dirty 直接作废（不产生特征帧、不进 FSM），计数进心跳帧的丢帧统计。累加器由 portMUX 自旋锁保护——逐包回调与检测窗回调分属不同上下文，对同一槽位的读写必须互斥。
+
+\subsection{滞回状态机}
+
+每条链路一个三态滞回状态机（图\ref{fig:fsm}）：IDLE 态下连续 N=10 窗 var 超阈值确认运动（$\approx$1~s@10~Hz，抑制瞬时毛刺）；MOTION 态下连续 M=25 窗低于阈值转入 PRESENCE（2.5~s，满足“停走 3~s 内报 STILL”）；PRESENCE 表达“人刚停但可能还在”的存在语义，安静持续 10~s 后回 IDLE，期间再次连续 N 窗超阈则直接回到 MOTION。状态跳变即时发 0x10 事件帧，MOTION 持续期以 2~Hz 重发（防上位机漏收）。训练期间不做 FSM 判决，避免把标定过程当成扰动。
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      >=Stealth,
+      state/.style={draw, rounded corners=8pt, align=center, font=\small\heiti,
+        minimum width=3.0cm, minimum height=1.05cm, fill=blue!8},
+      tr/.style={font=\footnotesize\songti, align=center}
+    ]
+    \node[state] (idle) at (0,0) {IDLE（静止）};
+    \node[state] (motion) at (7.4,0) {MOTION（运动）};
+    \node[state] (presence) at (7.4,-3.2) {PRESENCE（存在）};
+    \draw[->, very thick] (idle) to[bend left=15]
+      node[above, tr]{连续 N=10 窗 var $>$ 阈值\\[-2pt]{\scriptsize 发 0x10 state=1}} (motion);
+    \draw[->, very thick] (motion) -- (presence);
+    \node[anchor=east, tr] at (6.9,-1.6) {连续 M=25 窗\\[-2pt]{\scriptsize var $\le$ 阈值（2.5~s）}\\[-2pt]{\scriptsize 发 0x10 state=2}};
+    \draw[->, very thick] (presence) to[bend right=25] (motion);
+    \node[anchor=west, tr] at (8.75,-1.6) {再次连续\\[-2pt]{\scriptsize N=10 窗超阈}};
+    \draw[->, very thick] (presence) to[bend right=15] (idle);
+    \node[below, tr] at (2.9,-2.35) {安静持续 10~s\\[-2pt]{\scriptsize 发 0x10 state=0}};
+  \end{tikzpicture}
+  \caption{逐链路滞回状态机（N/M/存在保持均可经 Kconfig 配置）}
+  \label{fig:fsm}
+\end{figure}
+
+\section{现场标定与持久化}\label{sec:calib}
+
+CSI 对环境高度敏感：房间几何、家具、天线位置都进入信道\cite{ref:generalizability}，因此阈值不能离线写死，必须现场标定。每条链路的标定流程为：清场关门、无人静止后执行 \texttt{train <mac> 15}——固件对随后的 15~s（默认，Kconfig 可调）检测窗方差累加求均值得到噪声底，阈值按
+\[
+T=\max(\text{噪声底}\times 300\%,\ 15)\ \text{（centi-var）}
+\]
+计算，经 0x30 标定结果帧上报上位机并同步写入 NVS；随后可用 \texttt{threshold <mac> <val>} 按验收结果 $\pm$10--20\% 微调、\texttt{threshold save} 批量持久化。链路表（源 MAC、区域名、阈值）整体序列化为 NVS 键值（magic+位图+定长记录），上电时自动恢复并逐个重新注册 esp-radar peer。红线：标定后挪动任何一块板即链路作废，必须重标。
+
+\section{系统设计与微机原理知识点的对应}\label{sec:kmap}
+
+本系统对微机原理课程核心知识点的显性覆盖逐条对应见表\ref{tab:kmap}。
+
+\begin{table}[htbp]
+  \centering
+  \caption{系统设计与微机原理知识点的对应}
+  \label{tab:kmap}
+  \begin{tabular}{p{3.1cm}p{9.2cm}p{2.2cm}}
+    \toprule
+    \textbf{课程知识点} & \textbf{本系统中的体现} & \textbf{报告落点} \\
+    \midrule
+    串行通信 & UART 2~Mbps（8-N-1）二进制帧上行；帧格式 AA~55/ver/type/len/crc16；PC 端失步重同步 & \S\ref{sec:proto} \\
+    校验与差错控制 & CRC-16/CCITT-FALSE（poly 0x1021/init 0xFFFF）覆盖 ver$\ldots$payload；坏帧 1 字节重扫 & \S\ref{sec:proto} \\
+    中断与回调 & CSI 接收回调 \texttt{wifi\_radar\_cb\_ex}（中断上下文）、USB-Serial-JTAG 接收、TCP REPL socket 线程 & \S\ref{sec:alg}、\S\ref{sec:fwimpl} \\
+    定时器/计数器 & \texttt{esp\_timer} 1~Hz 心跳、10~Hz/peer 特征流节拍、检测窗 100~ms 粒度（10 包/窗） & \S\ref{sec:alg} \\
+    存储器组织与分区 & 16~MB Flash 分区表（factory@0x20000 / nvs / coredump）；NVS 键值存储链路表+阈值+WiFi 凭据，断电恢复 & \S\ref{sec:calib} \\
+    总线与 I/O 接口 & SPI Flash、USB-Serial-JTAG、IPEX 外置天线接口、BOOT/EN 按键电路 & \S\ref{sec:boardsec} \\
+    CPU 结构与多任务 & ESP32-S3 双核 Xtensa LX7 / C3 单核 RISC-V；FreeRTOS 调度；\texttt{portMUX} 自旋锁保护 8 槽 CSI 累加器（回调/检测任务共享） & \S\ref{sec:alg}、\S\ref{sec:fwimpl} \\
+    缓冲与队列 & PC 端 1~MB 环形缓冲（满丢最新+计数）、帧队列 EVENT 优先挤占；固件侧 per-peer 累加槽 & \S\ref{sec:ui} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{上位机设计}\label{sec:ui}
+
+上位机（\path{pc_dashboard/}）按“数据源抽象 + 线程模型 + 三层丢帧计数 + 卡片式 UI”组织：
+
+\begin{itemize}
+  \item \textbf{数据源抽象}：SerialSource（串口）、UDPSource（UDP 3333）、Replay（CSV 回放）、SimSource（仿真）实现同一接口，UI 不感知具体来源；
+  \item \textbf{线程模型}：reader 线程阻塞读串口写入 1~MB 环形缓冲（写满丢最新并计数），parser 线程取字节经 StreamParser 解帧后入帧队列；队满时 EVENT 帧优先（挤占非 EVENT 帧）；
+  \item \textbf{三层丢帧计数}：环形缓冲丢弃字节、帧队列丢弃帧、固件心跳帧上报的固件侧丢帧计数，三层均展示于顶栏，可定位丢帧发生层次；
+  \item \textbf{UI 布局}：顶栏（连接源/记录开关/帧率与丢帧）、左列区域状态卡片（大状态灯+score+最近事件）、中央 pyqtgraph 实时曲线（每 peer 一条，事件画竖线）、底部事件表+命令框；标定按钮发送 \texttt{train} 并以 15~s 倒计时等待 0x30 回填阈值。
+\end{itemize}
