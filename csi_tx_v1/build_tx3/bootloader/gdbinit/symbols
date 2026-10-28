@@ -1,9 +1,0 @@
-
-
-# Load bootloader symbols
-set confirm off
-    # Bootloader elf was not found
-set confirm on
-
-# Load application symbols
-file F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader/bootloader.elf

@@ -1,5 +1,6 @@
 # ===== ESP-IDF 固件构建产物（csi_tx_v1 / csi_tx_c3_v1 / fw_idle / ESP32_CIS_V1.0 的 build，约 600M）=====
 build/
+build_tx3/
 managed_components/
 sdkconfig.old
 
