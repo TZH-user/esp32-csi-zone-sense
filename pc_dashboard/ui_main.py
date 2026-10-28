@@ -56,6 +56,7 @@ from store import (Record, Store, NODE_NAMES, default_zone_name,
 from udp_source import UdpSource
 from serial_source import SerialSource
 from self_test import ProbeResult, _clean_text
+from zone_features import TrajectoryAnalyzer, region_name
 
 
 def observer_arg(name: str) -> str:
@@ -456,6 +457,7 @@ class ZoneMapWidget(QWidget):
         self._total = 0.0                        # 总响应
         self._last_active_ts = 0.0               # 最近一次活动时刻
         self._hold_pos: tuple | None = None      # 静止保持位置
+        self._trail = TrajectoryAnalyzer()       # 确信定位点轨迹（尾迹/走向）
 
     # ---- 数据接口（Dashboard 每 500ms 调一次） ------------------------------
 
@@ -497,9 +499,11 @@ class ZoneMapWidget(QWidget):
             self._pos = (wx / total, wy / total)
             self._hold_pos = self._pos
             self._last_active_ts = now
+            self._trail.feed(now, *self._pos)
         elif self._hold_pos is not None and (now - self._last_active_ts) > ZONE_HOLD_S:
             self._hold_pos = None                      # 超时淡出
             self._pos = None
+            self._trail.clear()
         elif self._hold_pos is not None:
             self._pos = self._hold_pos                 # 静止：保持上次位置
         self.update()                                  # 触发 repaint
@@ -507,11 +511,7 @@ class ZoneMapWidget(QWidget):
     # ---- 绘制 ---------------------------------------------------------------
 
     def _region_name(self, x: float, y: float) -> str:
-        if 0.35 < x < 0.65 and 0.35 < y < 0.65:
-            return "中心区"
-        ns = "北" if y < 0.5 else "南"
-        ew = "西" if x < 0.5 else "东"
-        return ns + ew
+        return region_name(x, y)                       # 共享实现（zone_features）
 
     def paintEvent(self, ev):  # noqa: N802 (Qt 命名)
         p = QPainter(self)
@@ -575,6 +575,18 @@ class ZoneMapWidget(QWidget):
         p.drawText(rx_x - 40, rx_y + 10, 80, 14,
                    Qt.AlignmentFlag.AlignCenter, "S3 RX")
 
+        # 轨迹尾迹（仅确信定位点，越旧越淡）
+        trail = self._trail.trail()
+        if len(trail) >= 2:
+            n = len(trail)
+            for i in range(1, n):
+                x0, y0 = to_px(trail[i - 1])
+                x1, y1 = to_px(trail[i])
+                c = QColor("#d62728")
+                c.setAlpha(30 + int(150 * i / (n - 1)))
+                p.setPen(QPen(c, 2))
+                p.drawLine(int(x0), int(y0), int(x1), int(y1))
+
         # 人的估计位置
         if self._pos is not None:
             x, y = to_px(self._pos)
@@ -589,6 +601,10 @@ class ZoneMapWidget(QWidget):
             p.setFont(QFont("Microsoft YaHei", 8))
             label = ("上次活动 " if stale else "当前 ") + \
                 self._region_name(*self._pos)
+            if not stale:
+                dir_txt = self._trail.direction()
+                if dir_txt:
+                    label += " · " + dir_txt
             p.drawText(6, h - 22, label)
             p.drawText(6, h - 8,
                        "活动度 %.1f" % self._total if not stale
