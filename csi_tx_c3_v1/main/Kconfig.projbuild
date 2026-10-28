@@ -1,0 +1,65 @@
+# csi_tx_c3_v1 · CIS Mesh 配置 —— TX 节点身份与 mesh 上行
+#
+# 节点身份总表（observer_id ≡ CSI 源 MAC[5]，与 PC 侧 MAC_DEVICE_MAP 对齐，
+# 见 docs/标定SOP.md §0.2）：
+#   0x00 = node1 经典#1 TX1 （csi_tx_v1 工程, 不经本 Kconfig）
+#   0x01 = node2 C3 TX2     （本工程, CIS_TX_NODE_2 —— 本工程唯一固定身份）
+#   0x02 = node3 经典#2 TX3 （csi_tx_v1 工程, 不经本 Kconfig）
+#   0x03 = node4 S3 RX      （CIS_MESH_S3_MAC 自定义 STA MAC）
+# 四节点 MAC[5] 必须互异，否则 RX 侧无法按源 MAC 区分链路。
+menu "CIS Mesh Configuration"
+
+choice CIS_TX_NODE
+    prompt "TX node identity (which board runs this firmware)"
+    default CIS_TX_NODE_2
+    help
+        决定 CSI 源 MAC（1a:00:00:00:00:<CIS_TX_MAC_LAST>）与 mesh 身份，烧录即定。
+        本工程只服务 C3 板（flash_tx.bat tx2），身份固定 node2 —— 与 csi_tx_v1 的
+        Kconfig.projbuild 保持同构（同步源，改动须双写），仅去掉多角色选择。
+        经典板两角色（node1/node3）在 csi_tx_v1 工程内选择，不经本工程。
+
+config CIS_TX_NODE_2
+    bool "node2 — ESP32-C3 / TX2 (source MAC 1a:00:00:00:00:01)"
+
+endchoice
+
+config CIS_TX_NODE_ID
+    int
+    default 2 if CIS_TX_NODE_2
+    help
+        逻辑节点号（2=node2/C3 TX2），仅用于开机日志与角色提示；
+        线上身份一律以 CSI 源 MAC[5]（observer_id）为准（0x01）。
+
+config CIS_TX_MAC_LAST
+    int
+    default 1 if CIS_TX_NODE_2
+    range 0 255
+    help
+        CSI 源 MAC 末字节 = mesh observer_id（app_main.c CONFIG_CSI_SEND_MAC 派生），
+        node2=0x01（与 node1 的 0x00、node3 的 0x02、S3 的 0x03 区分）。
+
+config CIS_MESH_S3_MAC
+    string "S3 RX node custom STA MAC (feature uplink target)"
+    default "1a:00:00:00:00:03"
+    help
+        S3 RX 的自定义 STA MAC（observer_id=0x03，烧录前 esp_wifi_set_mac）。
+        TX 侧以其为 ESP-NOW 单播目标（FEAT_BUNDLE 上行 / CMD_TRAIN 下行），
+        并纳入本机 CSI 白名单（S3 起 100Hz 源帧广播后即成链路）。
+
+config CIS_MESH_FEATURE_RATE_HZ
+    int "Feature bundle (ESP-NOW uplink to S3) rate (Hz)"
+    range 1 50
+    default 10
+    help
+        FEAT_BUNDLE 打包任务频率：每周期把全部白名单链路的最新特征窗
+        聚成一包单播 S3（3 链路 ≈ 8+3×17=59B/包 @10Hz，ESP-NOW 上限 250B）。
+
+config CIS_CSI_WINDOW_MS
+    int "CSI statistics window (ms)"
+    range 20 1000
+    default 100
+    help
+        特征窗时长：esp_timer 周期排出 per-MAC 累加器（默认 100ms=10Hz 窗，
+        对齐 RX 侧 esp-radar 检测窗 ≈10Hz 的节奏与 CIS_MESH_FEATURE_RATE_HZ）。
+
+endmenu

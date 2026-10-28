@@ -1,17 +1,23 @@
 """CIS 数据存储：CSV 会话文件 + 内存回放缓冲（IMPLEMENTATION_PLAN.md §6 store.py）。
 
 CSV 会话：data/YYYYMMDD_HHMM/cis_log.csv（列序固定，见 COLUMNS）：
-    ts_iso,mac,name,type,state,score,mean,var,p2p,rssi
+    ts_iso,observer,mac,name,type,state,score,mean,var,p2p,rssi
 并集 schema：各帧类型只填自己有的列，其余留空——
     HEARTBEAT 只有 ts_iso/type（存活证据）；
     EVENT   state/score/rssi；
     FEATURES mean/var/p2p/rssi；
     CALIB   附加 text（阈值/噪声底摘要）；
     LOG     text（ASCII 回显）。
+observer 列：链路 observer 节点名（NODE_NAMES：0=TX1 1=TX2 2=TX3 3=S3）。
+0x12/0x13/0x14 多节点帧填对应节点名并映射为 FEATURES/EVENT/CALIB；
+0x11/0x10/0x30 遗留帧隐含 observer=上报 RX 自身，统一记 "S3"。
+旧 10 列表头（无 observer，COLUMNS_LEGACY）由 header_matches 兼容识别、
+replay.py 回填 "S3"。
 判据"CSV 列齐全"= 表头与 COLUMNS 完全一致（Store.header_matches）。
 
 Record：帧解析后的归一化记录（UI/存储/回放三方公共货币）。
 frame_to_record() 把 protocol.Frame → Record（解析失败返回 None，不抛出）。
+链路键 link_key(observer, mac) = "observer>mac"，是 UI 卡片/曲线/统计的唯一键。
 
 回放缓冲：内存 deque 保留最近 N 条 Record（默认 3 万条 ≈ 两 peer 特征流
 25 分钟），供 UI 即时回放；跨文件回放走 replay.py。
@@ -33,13 +39,29 @@ from typing import Callable
 
 import protocol
 
-# 表头即判据：M3 "CSV 列齐全" 的唯一对照
-COLUMNS = ["ts_iso", "mac", "name", "type", "state", "score",
+# 表头即判据：M3 "CSV 列齐全" 的唯一对照（v2：mesh 12 链路，插入 observer 列）
+COLUMNS = ["ts_iso", "observer", "mac", "name", "type", "state", "score",
            "mean", "var", "p2p", "rssi"]
+# v1 兼容：升级前（单 RX）的 10 列表头，header_matches/replay 识别旧会话文件
+COLUMNS_LEGACY = ["ts_iso", "mac", "name", "type", "state", "score",
+                  "mean", "var", "p2p", "rssi"]
 
 DEFAULT_DATA_ROOT = Path(__file__).resolve().parent.parent / "data"
 
 _STATE_TO_NAME = {v: k for k, v in protocol.STATE_NAMES.items()}
+
+# 节点身份：observer_id ≡ 该节点自身 CSI 源 MAC[5]（与 MAC_DEVICE_MAP 对齐）
+NODE_NAMES = {0: "TX1", 1: "TX2", 2: "TX3", 3: "S3"}
+
+
+def node_name(observer_id: int) -> str:
+    """observer_id → 节点名；未知 id 保留十六进制原值便于排查。"""
+    return NODE_NAMES.get(observer_id, "0x%02X" % observer_id)
+
+
+def link_key(observer: str, mac: str) -> str:
+    """链路键 "observer>mac"：UI 卡片/曲线/新鲜度/标定进度的唯一键。"""
+    return "%s>%s" % (observer, mac)
 
 
 def default_zone_name(mac: str) -> str:
@@ -49,11 +71,13 @@ def default_zone_name(mac: str) -> str:
 
 @dataclass
 class Record:
-    """归一化记录。kind ∈ {HEARTBEAT, EVENT, FEATURES, LOG, CALIB}。"""
+    """归一化记录。kind ∈ {HEARTBEAT, EVENT, FEATURES, LOG, CALIB}——
+    0x12/0x13/0x14 多节点帧映射为 FEATURES/EVENT/CALIB，observer 填节点名。"""
     ts: float                    # epoch 秒（接收时刻 / 回放重定基时刻）
     mac: str                     # 格式化 MAC；HEARTBEAT/LOG 为 ""
     kind: str
     name: str = ""               # 区域名（查不到留空，UI 负责起名）
+    observer: str = ""           # 链路 observer 节点名（HEARTBEAT/LOG 为 ""）
     state: int | None = None     # EVENT
     score: int | None = None     # EVENT
     mean: int | None = None      # FEATURES
@@ -75,7 +99,7 @@ class Record:
     def to_row(self) -> list:
         """按 COLUMNS 顺序展开成一行（None → 空串）。"""
         return [
-            self.ts_iso, self.mac, self.name, self.kind,
+            self.ts_iso, self.observer, self.mac, self.name, self.kind,
             self.state_name() if self.kind == "EVENT" else "",
             "" if self.score is None else self.score,
             "" if self.mean is None else self.mean,
@@ -90,6 +114,9 @@ def frame_to_record(frame: "protocol.Frame", ts: float | None = None,
     """protocol.Frame → Record。payload 解码失败返回 None（记入调用方统计）。
 
     name_lookup(mac_str, name_id) → 区域名；未提供或返回空则 Record.name 留空。
+    0x12/0x13/0x14 多节点帧：observer=node_name(observer_id)，映射为
+    FEATURES/EVENT/CALIB（与 0x11/0x10/0x30 同 kind，UI/CSV 无需分支）。
+    0x11/0x10/0x30 遗留帧：隐含 observer=上报 RX 自身 → NODE_NAMES[3]（"S3"）。
     """
     ts = time.time() if ts is None else ts
     try:
@@ -104,19 +131,42 @@ def frame_to_record(frame: "protocol.Frame", ts: float | None = None,
         mac = protocol.format_mac(obj.mac)
         name = name_lookup(mac, obj.name_id) if name_lookup else ""
         return Record(ts=ts, mac=mac, kind=tname, name=name,
+                      observer=NODE_NAMES[3],
                       state=obj.state, score=obj.score, rssi=obj.rssi, raw=obj)
     if frame.type == protocol.TYPE_FEATURES:
         mac = protocol.format_mac(obj.mac)
         name = name_lookup(mac, 0) if name_lookup else ""
         return Record(ts=ts, mac=mac, kind=tname, name=name,
+                      observer=NODE_NAMES[3],
                       mean=obj.mean, var=obj.var, p2p=obj.p2p,
                       rssi=obj.rssi, raw=obj)
+    if frame.type == protocol.TYPE_FEATURE_MULTI:
+        mac = protocol.format_mac(obj.mac)
+        name = name_lookup(mac, 0) if name_lookup else ""
+        return Record(ts=ts, mac=mac, kind="FEATURES", name=name,
+                      observer=node_name(obj.observer_id),
+                      mean=obj.mean, var=obj.var, p2p=obj.p2p,
+                      rssi=obj.rssi, raw=obj)
+    if frame.type == protocol.TYPE_EVENT_MULTI:
+        mac = protocol.format_mac(obj.mac)
+        name = name_lookup(mac, obj.name_id) if name_lookup else ""
+        return Record(ts=ts, mac=mac, kind="EVENT", name=name,
+                      observer=node_name(obj.observer_id),
+                      state=obj.state, score=obj.score, rssi=obj.rssi, raw=obj)
     if frame.type == protocol.TYPE_CALIB:
         mac = protocol.format_mac(obj.mac)
         name = name_lookup(mac, 0) if name_lookup else ""
         return Record(ts=ts, mac=mac, kind=tname, name=name, raw=obj,
+                      observer=NODE_NAMES[3],
                       text="train %ds 阈值=%d 噪声底=%d"
                            % (obj.train_duration, obj.threshold, obj.noise_floor))
+    if frame.type == protocol.TYPE_CALIB_MULTI:
+        mac = protocol.format_mac(obj.mac)
+        name = name_lookup(mac, 0) if name_lookup else ""
+        return Record(ts=ts, mac=mac, kind="CALIB", name=name, raw=obj,
+                      observer=node_name(obj.observer_id),
+                      text="train %ds 阈值=%d 噪声底=%d"
+                           % (obj.train_s, obj.threshold, obj.noise_floor))
     if frame.type == protocol.TYPE_LOG:
         return Record(ts=ts, mac="", kind=tname, raw=obj, text=obj.text)
     return Record(ts=ts, mac="", kind=tname, raw=obj,
@@ -209,12 +259,13 @@ class Store:
     # ---- 校验/诊断 ---------------------------------------------------------
 
     def header_matches(self) -> bool:
-        """已写 CSV 的首行是否与 COLUMNS 完全一致（M3 判据）。"""
+        """已写 CSV 的首行是否与 COLUMNS 完全一致（M3 判据）。
+        兼容旧 10 列表头（COLUMNS_LEGACY，升级前的会话文件）。"""
         if self.csv_path is None or not self.csv_path.exists():
             return False
         try:
             with open(self.csv_path, "r", encoding="utf-8") as fh:
-                return next(csv.reader(fh)) == COLUMNS
+                return next(csv.reader(fh)) in (COLUMNS, COLUMNS_LEGACY)
         except Exception:
             return False
 

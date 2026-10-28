@@ -1,0 +1,7 @@
+# csi_tx_v1 · TX3 (node3 / classic board #2) build identity — see main/Kconfig.projbuild.
+# Used only by scripts/flash_tx.bat tx3, which builds with:
+#   idf.py -B build_tx3 -D SDKCONFIG=sdkconfig.tx3
+#          -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tx3"
+# The base sdkconfig.defaults is still applied (CSI enabled etc.); this file only
+# overrides the node identity. TX1 (node1) builds from the defaults as-is.
+CONFIG_CIS_TX_NODE_3=y

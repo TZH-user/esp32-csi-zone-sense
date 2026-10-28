@@ -15,8 +15,26 @@ CRC 覆盖 ver..payload（即 magic 之后、crc 之前的全部字节），不�
     0x10 事件     mac 6B, name_id u8, state u8(0静止/1运动/2存在), score u16,
                   rssi i8, ts_ms u32                                              (15B)
     0x11 特征流   mac 6B, ts_ms u32, mean u16, var u16, p2p u16, rssi i8           (17B)
+    0x12 特征·多节点 observer_id u8, source_mac 6B, ts_ms u32, mean u16, var u16,
+                  p2p u16, rssi i8                                                (18B)
+    0x13 事件·多节点 observer_id u8, source_mac 6B, name_id u8, state u8, score u16,
+                  rssi i8, ts_ms u32                                              (16B)
+    0x14 标定·多节点 observer_id u8, source_mac 6B, train_s u16, threshold u16,
+                  noise_floor u16                                                 (13B)
     0x20 日志回显 ASCII 原始字节，变长
     0x30 标定结果 mac 6B, train_duration u16, threshold u16, noise_floor u16       (12B)
+
+多节点帧（0x12/0x13/0x14，mesh 升级新增，与固件 main/cis_protocol.h 互为对照源，
+固件侧随 S3 mesh 升级同步增补）：
+    - observer_id = 发送方节点自身 CSI 源 MAC[5]（零配置节点身份）：
+      0x00=TX1  0x01=TX2  0x02=TX3  0x03=S3 RX；
+      source_mac = 被观测源（CSI 发送方）MAC。链路 = (observer, source)。
+    - 0x11/0x10/0x30 隐含 observer=上报 RX 自身（单 RX 遗留）；0x12/0x13/0x14
+      显式携带 observer，其余字段单位刻度与 0x11/0x10/0x30 完全一致
+      （centi-amp/var）。升级后 S3 只发多节点帧，PC 保留旧类型解析以兼容
+      旧 CSV/回放。
+    - ts_ms 为各 observer 本地 uptime（esp_log_timestamp），跨 observer 不可比，
+      仅限链路内单调比较与到达时间排序。
 
 流式解析（StreamParser）面向"控制台日志字节与二进制帧交织"的现实串口流：
     - 全程搜索 0xAA 0x55 魔数，噪声字节计入 bytes_dropped；
@@ -39,11 +57,14 @@ MAGIC = b"\xaa\x55"
 VERSION = 0x01
 HEADER_LEN = 6        # magic(2) + ver(1) + type(1) + len(2)
 CRC_LEN = 2
-MAX_PAYLOAD = 1024    # 坏 len 防护；协议最大定长 payload 17B，日志帧上限 1KB
+MAX_PAYLOAD = 1024    # 坏 len 防护；协议最大定长 payload 18B，日志帧上限 1KB
 
 TYPE_HEARTBEAT = 0x01
 TYPE_EVENT = 0x10
 TYPE_FEATURES = 0x11
+TYPE_FEATURE_MULTI = 0x12
+TYPE_EVENT_MULTI = 0x13
+TYPE_CALIB_MULTI = 0x14
 TYPE_LOG = 0x20
 TYPE_CALIB = 0x30
 
@@ -51,6 +72,9 @@ TYPE_NAMES = {
     TYPE_HEARTBEAT: "HEARTBEAT",
     TYPE_EVENT: "EVENT",
     TYPE_FEATURES: "FEATURES",
+    TYPE_FEATURE_MULTI: "FEATURE_MULTI",
+    TYPE_EVENT_MULTI: "EVENT_MULTI",
+    TYPE_CALIB_MULTI: "CALIB_MULTI",
     TYPE_LOG: "LOG",
     TYPE_CALIB: "CALIB",
 }
@@ -133,6 +157,43 @@ class Features:
 
 
 @dataclass
+class FeaturesMulti:
+    """0x12 特征·多节点：observer_id=发送节点自身 MAC[5]，mac=被观测源 MAC。"""
+    observer_id: int
+    mac: bytes
+    ts_ms: int
+    mean: int
+    var: int
+    p2p: int
+    rssi: int
+    STRUCT = struct.Struct("<B6sIHHHb")   # 18B
+
+
+@dataclass
+class EventMulti:
+    """0x13 事件·多节点：字段含义与 0x10 一致，增加 observer_id 前缀。"""
+    observer_id: int
+    mac: bytes
+    name_id: int
+    state: int
+    score: int
+    rssi: int
+    ts_ms: int
+    STRUCT = struct.Struct("<B6sBBHbI")   # 16B
+
+
+@dataclass
+class CalibMulti:
+    """0x14 标定·多节点：字段含义与 0x30 一致，增加 observer_id 前缀。"""
+    observer_id: int
+    mac: bytes
+    train_s: int
+    threshold: int
+    noise_floor: int
+    STRUCT = struct.Struct("<B6sHHH")   # 13B
+
+
+@dataclass
 class LogEcho:
     raw: bytes
 
@@ -185,6 +246,21 @@ def build_features(f: Features, ver: int = VERSION) -> bytes:
         f.mac, f.ts_ms, f.mean, f.var, f.p2p, f.rssi), ver)
 
 
+def build_features_multi(f: FeaturesMulti, ver: int = VERSION) -> bytes:
+    return encode_frame(TYPE_FEATURE_MULTI, f.STRUCT.pack(
+        f.observer_id, f.mac, f.ts_ms, f.mean, f.var, f.p2p, f.rssi), ver)
+
+
+def build_event_multi(f: EventMulti, ver: int = VERSION) -> bytes:
+    return encode_frame(TYPE_EVENT_MULTI, f.STRUCT.pack(
+        f.observer_id, f.mac, f.name_id, f.state, f.score, f.rssi, f.ts_ms), ver)
+
+
+def build_calib_multi(f: CalibMulti, ver: int = VERSION) -> bytes:
+    return encode_frame(TYPE_CALIB_MULTI, f.STRUCT.pack(
+        f.observer_id, f.mac, f.train_s, f.threshold, f.noise_floor), ver)
+
+
 def build_log(text: str, ver: int = VERSION) -> bytes:
     return encode_frame(TYPE_LOG, text.encode("ascii", errors="replace"), ver)
 
@@ -202,6 +278,9 @@ _EXPECTED_LEN = {
     TYPE_HEARTBEAT: Heartbeat.STRUCT.size,
     TYPE_EVENT: Event.STRUCT.size,
     TYPE_FEATURES: Features.STRUCT.size,
+    TYPE_FEATURE_MULTI: FeaturesMulti.STRUCT.size,
+    TYPE_EVENT_MULTI: EventMulti.STRUCT.size,
+    TYPE_CALIB_MULTI: CalibMulti.STRUCT.size,
     TYPE_CALIB: CalibResult.STRUCT.size,
 }
 
@@ -224,6 +303,12 @@ def decode_payload(frame: "Frame"):
         return Event(*Event.STRUCT.unpack(p))
     if t == TYPE_FEATURES:
         return Features(*Features.STRUCT.unpack(p))
+    if t == TYPE_FEATURE_MULTI:
+        return FeaturesMulti(*FeaturesMulti.STRUCT.unpack(p))
+    if t == TYPE_EVENT_MULTI:
+        return EventMulti(*EventMulti.STRUCT.unpack(p))
+    if t == TYPE_CALIB_MULTI:
+        return CalibMulti(*CalibMulti.STRUCT.unpack(p))
     if t == TYPE_LOG:
         return LogEcho(p)
     if t == TYPE_CALIB:

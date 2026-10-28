@@ -15,11 +15,14 @@ import protocol as P
 from protocol import (
     MAGIC, VERSION, MAX_PAYLOAD,
     TYPE_HEARTBEAT, TYPE_EVENT, TYPE_FEATURES, TYPE_LOG, TYPE_CALIB,
+    TYPE_FEATURE_MULTI, TYPE_EVENT_MULTI, TYPE_CALIB_MULTI,
     STATE_STILL, STATE_MOTION, STATE_PRESENCE, STATE_NAMES,
     StreamParser, decode_payload, encode_frame,
     build_heartbeat, build_event, build_features, build_log, build_calib,
+    build_features_multi, build_event_multi, build_calib_multi,
     crc16_ccitt, crc16_ccitt_bitwise, format_mac,
     Heartbeat, Event, Features, LogEcho, CalibResult,
+    FeaturesMulti, EventMulti, CalibMulti, UnknownPayload,
 )
 
 MAC1 = bytes.fromhex("1a0000000000")   # TX1 的 CSI 身份 MAC（计划 v1.2 §2）
@@ -83,6 +86,71 @@ def test_roundtrip_features():
         frames = StreamParser().feed(build_features(f))
         assert len(frames) == 1 and frames[0].type == TYPE_FEATURES
         assert decode_payload(frames[0]) == f
+
+
+def test_roundtrip_multi_frames():
+    # 0x12/0x13/0x14 多节点帧：observer_id + 与 0x11/0x10/0x30 同刻度字段
+    for fm in (
+        FeaturesMulti(3, MAC1, 1000, 3793, 12, 64, -6),
+        FeaturesMulti(0, MAC2, 0xFFFFFFFF, 0, 0, 0, -128),
+        FeaturesMulti(0xFF, b"\xff" * 6, 1, 0xFFFF, 0xFFFF, 0xFFFF, 127),
+    ):
+        frames = StreamParser().feed(build_features_multi(fm))
+        assert len(frames) == 1 and frames[0].type == TYPE_FEATURE_MULTI
+        assert frames[0].type_name == "FEATURE_MULTI"
+        assert decode_payload(frames[0]) == fm
+    for em in (
+        EventMulti(3, MAC1, 1, STATE_MOTION, 87, -6, 45678),
+        EventMulti(0, b"\x00" * 6, 0, STATE_STILL, 0, 0, 0),
+        EventMulti(2, b"\xff" * 6, 255, STATE_PRESENCE, 0xFFFF, -128, 0xFFFFFFFF),
+    ):
+        frames = StreamParser().feed(build_event_multi(em))
+        assert len(frames) == 1 and frames[0].type == TYPE_EVENT_MULTI
+        assert frames[0].type_name == "EVENT_MULTI"
+        assert decode_payload(frames[0]) == em
+    for cm in (
+        CalibMulti(3, MAC1, 15, 340, 55),
+        CalibMulti(0, b"\xff" * 6, 0xFFFF, 0xFFFF, 0xFFFF),
+        CalibMulti(1, MAC2, 0, 0, 0),
+    ):
+        frames = StreamParser().feed(build_calib_multi(cm))
+        assert len(frames) == 1 and frames[0].type == TYPE_CALIB_MULTI
+        assert frames[0].type_name == "CALIB_MULTI"
+        assert decode_payload(frames[0]) == cm
+
+
+def test_multi_expected_len_guard():
+    # 三条新 _EXPECTED_LEN 精确长度（与设计 18/16/13B 一致）
+    assert P._EXPECTED_LEN[TYPE_FEATURE_MULTI] == 18
+    assert P._EXPECTED_LEN[TYPE_EVENT_MULTI] == 16
+    assert P._EXPECTED_LEN[TYPE_CALIB_MULTI] == 13
+    assert FeaturesMulti.STRUCT.size == 18
+    assert EventMulti.STRUCT.size == 16
+    assert CalibMulti.STRUCT.size == 13
+    # CRC 已过但长度不符 → 显式 ValueError（与 0x11 同守护，不靠 struct.error）
+    for t, bad in ((TYPE_FEATURE_MULTI, b"\x00" * 17),
+                   (TYPE_FEATURE_MULTI, b"\x00" * 19),
+                   (TYPE_EVENT_MULTI, b"\x00" * 15),
+                   (TYPE_EVENT_MULTI, b"\x00" * 17),
+                   (TYPE_CALIB_MULTI, b"\x00" * 12),
+                   (TYPE_CALIB_MULTI, b"\x00" * 14)):
+        try:
+            decode_payload(P.Frame(ver=VERSION, type=t, payload=bad))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("type 0x%02X 长度 %d 未被拒绝" % (t, len(bad)))
+
+
+def test_unknown_type_compat():
+    # 未知类型（如未来 0x15）：CRC 通过 → UnknownPayload 原样保留（前向兼容），
+    # 旧上位机只多计未知帧不崩——PC 先行的升级顺序依赖此分支
+    frames = StreamParser().feed(encode_frame(0x15, b"\x01\x02\x03"))
+    assert len(frames) == 1
+    got = decode_payload(frames[0])
+    assert isinstance(got, UnknownPayload)
+    assert got.type == 0x15 and got.raw == b"\x01\x02\x03"
+    assert frames[0].type_name == "0x15"
 
 
 def test_roundtrip_log_and_calib():
@@ -244,8 +312,8 @@ def test_split_feed_byte_and_chunks():
     rng = random.Random(7)
     states = [STATE_STILL, STATE_MOTION, STATE_PRESENCE, STATE_MOTION]
     objs = []
-    for k in range(60):
-        kind = k % 4
+    for k in range(80):
+        kind = k % 6
         if kind == 0:
             objs.append(build_heartbeat(Heartbeat(1000 * k, 3, 200000 + k, k % 5)))
         elif kind == 1:
@@ -253,15 +321,21 @@ def test_split_feed_byte_and_chunks():
                                           states[k % 4], k, -(30 + k % 40), 1000 * k)))
         elif kind == 2:
             objs.append(build_features(Features(MAC1, 1000 * k, 3700 + k, k, 2 * k, -6)))
-        else:
+        elif kind == 3:
             objs.append(build_log("log %d" % k))
+        elif kind == 4:
+            objs.append(build_features_multi(FeaturesMulti(
+                k % 4, MAC1 if k % 2 else MAC2, 1000 * k, 3700 + k, k, 2 * k, -6)))
+        else:
+            objs.append(build_event_multi(EventMulti(
+                k % 4, MAC2, k % 4, states[k % 4], k, -(30 + k % 40), 1000 * k)))
     stream = b"".join(objs)
     # 逐字节喂
     p1 = StreamParser()
     got = []
     for i in range(len(stream)):
         got.extend(p1.feed(stream[i:i + 1]))
-    assert len(got) == 60 and p1.bad_crc == 0 and p1.bytes_dropped == 0 and p1.resyncs == 0
+    assert len(got) == 80 and p1.bad_crc == 0 and p1.bytes_dropped == 0 and p1.resyncs == 0
     for idx, f in enumerate(got):
         assert f.payload == objs[idx][HEADER_OFF_PAYLOAD:-2] and f.type == objs[idx][3]
     # 随机 1~9 字节分片喂
@@ -271,7 +345,7 @@ def test_split_feed_byte_and_chunks():
         n = rng.randrange(1, 10)
         got2.extend(p2.feed(stream[i:i + n]))
         i += n
-    assert len(got2) == 60 and p2.stats()["frames_ok"] == 60
+    assert len(got2) == 80 and p2.stats()["frames_ok"] == 80
     assert [f.payload for f in got2] == [f.payload for f in got]
 
 

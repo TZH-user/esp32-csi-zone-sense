@@ -72,6 +72,7 @@ class ProbeResult:
         "00": ("TX1", "经典#1 TX1"),     # 1a:00:00:00:00:00
         "01": ("TX2", "C3 TX2"),         # 1a:00:00:00:00:01
         "02": ("TX3", "经典#2 TX3"),     # 1a:00:00:00:00:02
+        "03": ("S3", "S3 RX"),           # 1a:00:00:00:00:03（mesh 后 S3 也发源帧）
     })
 
     @property
@@ -298,7 +299,8 @@ def _extract_text(raw_bytes: bytes) -> str:
 
 
 def _extract_info(res: ProbeResult, frames: list[protocol.Frame]):
-    """从帧中提取设备信息（MAC / uptime / heap / peer_count）。"""
+    """从帧中提取设备信息（MAC / uptime / heap / peer_count）。
+    0x12/0x13/0x14 多节点帧同样纳入识别与 parser.frames_ok 自检统计。"""
     for f in frames:
         if f.type == protocol.TYPE_HEARTBEAT:
             try:
@@ -308,18 +310,25 @@ def _extract_info(res: ProbeResult, frames: list[protocol.Frame]):
                 res.peer_count = hb.peer_count
             except Exception:
                 pass
-        elif f.type == protocol.TYPE_FEATURES:
+        elif f.type in (protocol.TYPE_FEATURES, protocol.TYPE_FEATURE_MULTI):
             try:
                 feat = protocol.decode_payload(f)
                 if res.mac is None:
                     res.mac = protocol.format_mac(feat.mac)
             except Exception:
                 pass
-        elif f.type == protocol.TYPE_EVENT:
+        elif f.type in (protocol.TYPE_EVENT, protocol.TYPE_EVENT_MULTI):
             try:
                 ev = protocol.decode_payload(f)
                 if res.mac is None:
                     res.mac = protocol.format_mac(ev.mac)
+            except Exception:
+                pass
+        elif f.type == protocol.TYPE_CALIB_MULTI:
+            try:
+                c = protocol.decode_payload(f)
+                if res.mac is None:
+                    res.mac = protocol.format_mac(c.mac)
             except Exception:
                 pass
 

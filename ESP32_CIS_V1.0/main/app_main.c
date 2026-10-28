@@ -38,6 +38,7 @@
 #include "cis_peer.h"
 #include "cis_detect.h"
 #include "cis_report.h"
+#include "cis_mesh.h"
 
 static const char *TAG = "cis_rx";
 
@@ -75,11 +76,16 @@ void app_main(void)
     ESP_LOGI(TAG, "esp-radar started: channel=%d bw=HT20 filter_mac=" MACSTR,
              CONFIG_CIS_DEFAULT_CHANNEL, MAC2STR(CIS_BOOTSTRAP_MAC));
 
+    /* ESP-NOW mesh（多节点汇聚）：设本节点源 MAC（1a:..:03，须在 WiFi 已由 esp-radar
+     * 拉起后、STA connect 前）+ esp_now peer/收发任务 + 12 链路表。
+     * 必须早于 cis_wifi_start（MAC 先于 connect 生效）与 cis_report_start。 */
+    ESP_ERROR_CHECK(cis_mesh_start());
+
     cis_console_net_start();      /* TCP 2323 REPL（lwip 已由 esp-radar 拉起） */
     cis_peer_load();              /* NVS peer 表 → esp_radar_new_peer + 检测上下文 */
     cis_wifi_start();             /* NVS 凭据连 STA（异步），30s 失败 SoftAP 兜底 */
     cis_detect_start();
-    cis_report_start();           /* 0x01/0x10/0x11/0x30 帧 + UDP 可选 */
+    cis_report_start();           /* 0x01/0x12/0x13/0x14 帧（遗留 0x10/0x11/0x30 可选） + UDP 可选 */
 
     ESP_LOGI(TAG, "ESP32_CIS_V1.0 RX ready (M2): detect+report+console, mode=%s",
 #if defined(CONFIG_CIS_MODE_DIRECT)

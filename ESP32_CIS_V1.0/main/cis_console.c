@@ -1,12 +1,14 @@
 /*
  * ESP32_CIS_V1.0 · cis_console.c — 命令 + 双 REPL（USB-Serial-JTAG / TCP 2323）
  *
- * 命令（实施计划 §4/§7）：
+ * 命令（实施计划 §4/§7 + 多节点升级 2026-10）：
  *   peer add <mac> [name] | peer del <mac> | peer list | peer scan
- *   train <mac> [seconds]
+ *   train [observer] <mac> [seconds]（带 observer 转发对应节点；不带全网下发+本地）
  *   threshold <mac> [value] | threshold save
  *   report [on|off|rate <1~50>|status]
  *   udp <on [ip]|off|status>
+ *   link list（12 链路 observer→source / 新鲜度 / seq 丢失）
+ *   mesh status（espnow 收发丢包计数 + 各发送方 last_seen）
  *   dump [mac]
  * 另有移植件命令：wifi_config / wifi_scan / ping / system（restart, mem 等）。
  */
@@ -27,6 +29,7 @@
 #include "cis_peer.h"
 #include "cis_detect.h"
 #include "cis_report.h"
+#include "cis_mesh.h"
 #include "cis_wifi.h"
 #include "csi_commands.h"
 
@@ -61,7 +64,7 @@ static void print_peer_list(void)
             continue;
         }
         cis_det_stats_t st;
-        esp_err_t err = cis_detect_get_stats(e->mac, &st);
+        esp_err_t err = cis_detect_get_stats(CIS_OBSERVER_SELF, e->mac, &st);
         ESP_LOGI(TAG, "peer[%d] " MACSTR " name=%s thr=%u c state=%u var=%u mean=%u p2p=%u rssi=%d",
                  i, MAC2STR(e->mac), e->name, e->threshold,
                  err == ESP_OK ? st.state : 0xFF,
@@ -145,28 +148,59 @@ static int cmd_peer(int argc, char **argv)
 static int cmd_train(int argc, char **argv)
 {
     if (argc < 2) {
-        ESP_LOGE(TAG, "usage: train <mac> [seconds=%d]", CONFIG_CIS_TRAIN_SECONDS);
+        ESP_LOGE(TAG, "usage: train [observer] <mac> [seconds=%d]", CONFIG_CIS_TRAIN_SECONDS);
         return 1;
     }
     uint8_t mac[6];
-    if (!mac_parse(argv[1], mac)) {
-        ESP_LOGE(TAG, "bad mac format: %s", argv[1]);
+    uint8_t observer = 0xFF;    /* 0xFF = 未指定（全网下发） */
+    int mac_idx = 1;
+    /* `train [observer] <mac> [sec]`：argv[1] 为 0~3 单个数字且后随 mac 时视为 observer */
+    if (argc >= 3 && argv[1][1] == '\0' && argv[1][0] >= '0' && argv[1][0] <= '3') {
+        observer = (uint8_t)(argv[1][0] - '0');
+        mac_idx = 2;
+    }
+    if (!mac_parse(argv[mac_idx], mac)) {
+        ESP_LOGE(TAG, "bad mac format: %s", argv[mac_idx]);
         return 1;
     }
     uint16_t sec = 0;
-    if (argc >= 3) {
-        sec = (uint16_t)atoi(argv[2]);
+    if (argc >= mac_idx + 2) {
+        sec = (uint16_t)atoi(argv[mac_idx + 1]);
     }
-    esp_err_t err = cis_detect_train_start(mac, sec);
-    if (err == ESP_ERR_NOT_FOUND) {
-        ESP_LOGE(TAG, "peer not registered — run `peer add` first");
+
+    if (observer != 0xFF) {
+        esp_err_t err = cis_mesh_train(observer, mac, sec);
+        if (err == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "peer not registered — run `peer add` first");
+            return 1;
+        }
+        if (err == ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(TAG, "training already in progress for this peer");
+            return 1;
+        }
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "train dispatch to observer %u failed: %s",
+                     observer, esp_err_to_name(err));
+            return 1;
+        }
+        ESP_LOGI(TAG, "training dispatched to observer %u; 0x14 frame will follow when done",
+                 observer);
+        return 0;
+    }
+
+    /* 不带 observer：4 个 observer 全下发（其余经 mesh CMD_TRAIN，本地走检测上下文） */
+    esp_err_t err = ESP_OK;
+    for (uint8_t obs = 0; obs <= 3; obs++) {
+        esp_err_t e = cis_mesh_train(obs, mac, sec);
+        if (e != ESP_OK) {
+            ESP_LOGW(TAG, "observer %u: %s", obs, esp_err_to_name(e));
+            err = err == ESP_OK ? e : err;
+        }
+    }
+    if (err != ESP_OK) {
         return 1;
     }
-    if (err == ESP_ERR_INVALID_STATE) {
-        ESP_LOGW(TAG, "training already in progress for this peer");
-        return 1;
-    }
-    ESP_LOGI(TAG, "training started; 0x30 frame will follow when done");
+    ESP_LOGI(TAG, "training dispatched to all 4 observers; 0x14 frames will follow");
     return 0;
 }
 
@@ -204,7 +238,7 @@ static int cmd_threshold(int argc, char **argv)
     }
     /* 查询 */
     cis_det_stats_t st;
-    if (cis_detect_get_stats(mac, &st) != ESP_OK) {
+    if (cis_detect_get_stats(CIS_OBSERVER_SELF, mac, &st) != ESP_OK) {
         ESP_LOGE(TAG, "peer not registered");
         return 1;
     }
@@ -280,7 +314,7 @@ static int cmd_dump(int argc, char **argv)
             return 1;
         }
         cis_det_stats_t st;
-        if (cis_detect_get_stats(mac, &st) != ESP_OK) {
+        if (cis_detect_get_stats(CIS_OBSERVER_SELF, mac, &st) != ESP_OK) {
             ESP_LOGE(TAG, "peer not registered");
             return 1;
         }
@@ -297,6 +331,67 @@ static int cmd_dump(int argc, char **argv)
     ESP_LOGI(TAG, "report enable=%s rate=%uHz dropped=%u lost(det)=%u | %s",
              cis_report_get_enable() ? "on" : "off", cis_report_get_rate(),
              (unsigned)cis_report_dropped(), (unsigned)cis_detect_lost_frames(), st);
+    char ms[128];
+    cis_mesh_status(ms, sizeof(ms));
+    ESP_LOGI(TAG, "%s", ms);
+    return 0;
+}
+
+/* ============ link / mesh 命令（多节点） ============ */
+
+static int cmd_link(int argc, char **argv)
+{
+    if (argc < 2 || strcmp(argv[1], "list") != 0) {
+        ESP_LOGE(TAG, "usage: link list");
+        return 1;
+    }
+    uint32_t stale_ms = 2u * 1000u / CONFIG_CIS_MESH_FEATURE_RATE_HZ;
+    ESP_LOGI(TAG, "mesh links (12 = 4 observer x 3 source; self=%u; ts 为各节点本地 uptime)",
+             CIS_OBSERVER_SELF);
+    for (size_t i = 0; i < CIS_LINK_MAX; i++) {
+        cis_mesh_link_info_t info;
+        if (!cis_mesh_link_get(i, &info)) {
+            break;
+        }
+        const char *fresh = (info.active && info.age_ms < stale_ms) ? "" : " (stale)";
+        ESP_LOGI(TAG, "link[%2u] %u->" MACSTR " %s thr=%u var=%lu mean=%lu p2p=%lu rssi=%d "
+                 "age=%lums seq_lost=%lu%s",
+                 (unsigned)i, info.observer, MAC2STR(info.mac),
+                 info.active ? (info.registered ? "loc" : "rem") : "---",
+                 info.threshold,
+                 (unsigned long)info.var_c, (unsigned long)info.mean_c,
+                 (unsigned long)info.p2p_c, info.rssi,
+                 (unsigned long)info.age_ms, (unsigned long)info.seq_lost, fresh);
+    }
+    return 0;
+}
+
+static int cmd_mesh(int argc, char **argv)
+{
+    if (argc < 2 || strcmp(argv[1], "status") != 0) {
+        ESP_LOGE(TAG, "usage: mesh status");
+        return 1;
+    }
+    char st[128];
+    cis_mesh_status(st, sizeof(st));
+    ESP_LOGI(TAG, "%s", st);
+    for (size_t i = 0; i < 4; i++) {
+        uint8_t obs = 0;
+        bool seen = false;
+        uint32_t age = 0, pkts = 0, lost = 0;
+        if (!cis_mesh_node_get(i, &obs, &seen, &age, &pkts, &lost)) {
+            break;
+        }
+        if (!seen) {
+            ESP_LOGI(TAG, "node %u: no data yet", obs);
+        } else {
+            ESP_LOGI(TAG, "node %u: pkts=%lu lost=%lu (%lu.%lu%%) last_seen=%lums ago",
+                     obs, (unsigned long)pkts, (unsigned long)lost,
+                     (unsigned long)(pkts ? lost * 100 / pkts : 0),
+                     (unsigned long)(pkts ? lost * 100 % pkts * 10 / pkts : 0),
+                     (unsigned long)age);
+        }
+    }
     return 0;
 }
 
@@ -451,7 +546,7 @@ void cis_console_start(void)
     const esp_console_cmd_t cmds[] = {
         { .command = "peer",      .help = "peer add <mac> [name] | del <mac> | list | scan",
           .func = &cmd_peer },
-        { .command = "train",     .help = "train <mac> [seconds] — 静默标定，结束回 0x30",
+        { .command = "train",     .help = "train [observer] <mac> [seconds] — 静默标定，结束回 0x14（0~3=指定节点转发，缺省全网下发+本地）",
           .func = &cmd_train },
         { .command = "threshold", .help = "threshold <mac> [val] | save",
           .func = &cmd_threshold },
@@ -459,6 +554,10 @@ void cis_console_start(void)
           .func = &cmd_report },
         { .command = "udp",       .help = "udp <on [ip]|off|status> — UDP 3333 上报",
           .func = &cmd_udp },
+        { .command = "link",      .help = "link list — 12 链路 observer→source / 新鲜度 / seq 丢失",
+          .func = &cmd_link },
+        { .command = "mesh",      .help = "mesh status — espnow 收发/丢包计数 + 各发送方 last_seen",
+          .func = &cmd_mesh },
         { .command = "dump",      .help = "dump [mac] — 实时统计",
           .func = &cmd_dump },
         { .command = "wifi_status", .help = "wifi 连接状态",

@@ -3,7 +3,7 @@
 > 适用系统：ESP32 CSI 多监测点扰动特征监控系统（1×RX + 3×TX + 路由器 1003-k）。
 > 本文是 `docs/IMPLEMENTATION_PLAN.md` §7 的逐步操作展开，命令均以当前固件实际注册的 REPL 命令为准（`ESP32_CIS_V1.0/main/cis_console.c:451-474`）。
 > 配套：验收记录 `docs/验收记录表.md`；烧录脚本 `scripts/flash_rx.bat`、`scripts/flash_tx.bat`；备份脚本 `scripts/backup_flash.sh`。
-> 版本：v1（2026-10-28，依据实施计划 v1.3 状态编写）。
+> 版本：v1.1（2026-10-29，§0.2 节点身份改为 Kconfig 构建配置派生、废除改源码换 MAC 流程，新增 §0.3 跨 observer 刻度差异；§3/§9 同步）。v1（2026-10-28，依据实施计划 v1.3 状态编写）。
 
 ---
 
@@ -34,11 +34,27 @@ C:\Espressif\tools\python\v5.5.6\venv\Scripts\esptool.exe --port <口> chip_id
 | C3 | TX2 | `E4:B0:63:33:F0:40` | COM5 | 4M |
 | 经典#2 | TX3 | `8C:94:DF:A1:DA:4C` | COM14（v1.1 时曾进不了下载模式，疑过热；凉后重试） | 4M |
 
-### 0.2 CSI 源 MAC ≠ 物理 MAC（注册 peer 用哪个）
+### 0.2 CSI 源 MAC ≠ 物理 MAC（节点身份 ≡ 源 MAC 末字节）
 
-- 每个 TX 固件内 `esp_wifi_set_mac` 有意设置了本地管理地址作为 **CSI 源 MAC**（见各自 `main/app_main.c` 的 `CONFIG_CSI_SEND_MAC`）。RX 端 `peer add`、`peer scan`、0x10/0x11 帧里的 mac 全是 **CSI 源 MAC**。当前实测（2026-10-28）：TX1=`1a:00:00:00:00:00`（`csi_tx_v1/main/app_main.c:53`）、TX2=`1a:00:00:00:00:01`（`csi_tx_c3_v1/main/app_main.c:55`，已与 TX1 区分，源码注明 MUST differ from TX1）。
-- ⚠️ **每块 TX 的源 MAC 必须互不相同**，否则 RX 无法按源 MAC 区分链路，多 peer 全部混叠。**TX3 特别注意**：`flash_tx.bat tx3` 复用 `csi_tx_v1` 工程，其源 MAC 与 TX1 同为 `…:00`——烧 TX3 前必须先把 `csi_tx_v1/main/app_main.c:53` 末字节 `0x00` 改为 `0x02` 重构建，烧完 TX3 后再改回 `0x00` 重烧 TX1。`flash_tx.bat` 已内置防呆：tx3 检测到源 MAC 仍为 `…:00` 时拒烧，tx1 检测到源 MAC 不是 `…:00` 时拒烧（防止 tx3 用完忘改回）。
-- RX 精确过滤设计：注册第一个 peer 后 `peer scan` **只能看到已注册源**；未注册 TX 的源 MAC 从该 TX 开机 monitor 日志的 `mac=` 字段抄取（v1.3 #5 实测结论）。
+- 每个 TX 固件内 `esp_wifi_set_mac` 有意设置了本地管理地址作为 **CSI 源 MAC**（原 `CONFIG_CSI_SEND_MAC`，现由构建配置派生）。**mesh 节点身份（observer_id）≡ 源 MAC 末字节**，与 PC 上位机 `MAC_DEVICE_MAP`（`ui_main.py`，按末字节映射）天然对齐。四节点身份表（v1.4 mesh 化后）：
+
+  | observer_id | 节点 | 工程 / 构建配置 | CSI 源 MAC |
+  |---|---|---|---|
+  | 0x00 | 经典#1 TX1（node1） | `csi_tx_v1` 默认构建（Kconfig `CIS_TX_NODE_1`） | `1a:00:00:00:00:00` |
+  | 0x01 | C3 TX2（node2） | `csi_tx_c3_v1` | `1a:00:00:00:00:01` |
+  | 0x02 | 经典#2 TX3（node3） | `csi_tx_v1` + `sdkconfig.defaults.tx3`（Kconfig `CIS_TX_NODE_3`） | `1a:00:00:00:00:02` |
+  | 0x03 | S3 RX（node4） | `ESP32_CIS_V1.0`，烧录前 `esp_wifi_set_mac` 自定义 STA MAC | `1a:00:00:00:00:03` |
+
+- **源 MAC 由构建配置决定**（`csi_tx_v1/main/Kconfig.projbuild` 的 `CIS_TX_NODE_ID` choice：node1→…:00 / node3→…:02）。`flash_tx.bat tx3` 自动以 `sdkconfig.defaults.tx3`（`CONFIG_CIS_TX_NODE_3=y`）+ `build_tx3` 独立构建，`flash_tx.bat tx1` 用默认 `build`——**同一工程两套构建产物互不污染：换角色不需要改源码，也没有"改 MAC-烧 TX3-改回-重烧 TX1"流程（v1 版流程已废除）**。脚本防呆升级为校验**构建产物** `build*/config/sdkconfig.h` 里的 node 选择，与角色不符即拒烧。
+- ⚠️ **四节点源 MAC 必须互不相同**，否则 RX 侧无法按源 MAC 区分链路、多 peer 全部混叠。烧错角色（如 tx1 烧成 node3 配置）时，该板开机 monitor 日志的 `node_id:` 行与 `mac=` 会立即暴露错配。
+- RX 精确过滤设计：注册第一个 peer 后 `peer scan` **只能看到已注册源**；未注册 TX 的源 MAC 从该 TX 开机 monitor 日志的 `mac=` / `node_id:` 字段抄取（v1.3 #5 实测结论）。
+
+### 0.3 跨 observer 幅值刻度差异（只比相对量）
+
+TX 节点（`csi_tx_v1/main/cis_csi_rx.c`）用**原始 `wifi_csi_info_t` 全 tone I/Q** 计算特征；S3 用 **esp-radar 重建的 L-LTF 子载波集**（`esp_radar.c` `esp_radar_rebuild_csi_data`，仅取 L-LTF 有效子载波段）。同一物理链路在两侧 observer 的 mean/var **绝对刻度不同**：
+
+- 跨 observer 只比较**相对量**（var 相对变化、超阈倍数），不直接比较绝对值；
+- 每条 (observer, source) 链路**独立 train 归一**（TX 侧 `cis_tx_train` per-source 标定 + 0x14 标定帧即为此设计），阈值/噪声底只在同 observer 同链路内比较，不可跨 observer 复用。
 
 ---
 
@@ -63,7 +79,7 @@ C:\Espressif\tools\python\v5.5.6\venv\Scripts\esptool.exe --port <口> chip_id
 
 ## 3. 烧录与备份（现场改板/重烧时）
 
-> 运行环境：`.bat` 在 cmd/资源管理器里跑，`.sh` 在 Git Bash 里跑。`flash_rx.bat`/`flash_tx.bat` 动手前先 chip_id 验物理 MAC，不对一律拒绝；`flash_tx.bat` 另有源 MAC 归属防呆（tx1 要求 `…:00`、tx3 拒绝 `…:00`，见 §0.2）。`backup_flash.sh` 只做在位确认与芯片自动识别、**不比对 MAC**（按口整片备份，勿把口接错板）。
+> 运行环境：`.bat` 在 cmd/资源管理器里跑，`.sh` 在 Git Bash 里跑。`flash_rx.bat`/`flash_tx.bat` 动手前先 chip_id 验物理 MAC，不对一律拒绝；`flash_tx.bat` 另有 node 身份防呆（校验构建产物与角色匹配的 `CIS_TX_NODE` 选择，见 §0.2）。`backup_flash.sh` 只做在位确认与芯片自动识别、**不比对 MAC**（按口整片备份，勿把口接错板）。
 
 ```bash
 # 1) 覆盖任何板卡前先整片备份（§9.2 红线）
@@ -73,14 +89,14 @@ bash scripts/backup_flash.sh COM15 4M        # TX1（经典 ESP32，4MB）
 # 2) RX：脚本内置 chip_id 验 MAC（DC:DA:0C:1D:AE:10）→ build → flash
 scripts\flash_rx.bat COM3
 
-# 3) TX：按角色烧录（内置验 MAC；CH340 口不稳时加波特率参数）
-scripts\flash_tx.bat tx1 COM15               # 经典#1，期望 MAC 8C:94:DF:A1:DD:D0
+# 3) TX：按角色烧录（内置验 MAC + node 身份防呆；CH340 口不稳时加波特率参数）
+scripts\flash_tx.bat tx1 COM15               # 经典#1，期望 MAC 8C:94:DF:A1:DD:D0（默认构建，node1）
 scripts\flash_tx.bat tx2 COM5                # C3，期望 MAC E4:B0:63:33:F0:40
-scripts\flash_tx.bat tx3 COM14 460800        # 经典#2，期望 MAC 8C:94:DF:A1:DA:4C
+scripts\flash_tx.bat tx3 COM14 460800        # 经典#2，期望 MAC 8C:94:DF:A1:DA:4C（自动以 sdkconfig.defaults.tx3 构建 build_tx3，node3）
 ```
 
 - 备份落在 `scripts/backup/<端口>_<芯片>_flash<容量>_<日期>.bin`，已存在同名文件时脚本拒绝覆盖。
-- TX 改了 `CONFIG_CSI_SEND_MAC`/SSID 后须先 `idf.py build`（脚本自动做）；monitor 确认日志出现 `connected to AP 1003-k` 与周期发包再拔线下地。
+- TX 换角色由脚本自动以对应 node 配置构建（tx1→默认 build、tx3→`build_tx3`，见 §0.2）；改 SSID 后须重构建（脚本自动做）。monitor 确认日志出现 `connected to AP 1003-k`、`node_id:` 与周期发包再拔线下地。
 - TX 开机 monitor 日志里的 `mac=xx:xx:…` 即该板 CSI 源 MAC，抄下来填进验收记录表 §"链路登记"。
 
 ## 4. 上电与连接
@@ -174,7 +190,7 @@ threshold <tx源MAC>                   # 无值 = 查询回读
 | TCP 2323 / UDP 3333 连不上 | 网段隔离：PC 不在 1003-k 网段（v1.3 #3） | PC 接 1003-k LAN 或连 RX SoftAP；或直接用 COM3 串口 |
 | 特征流空窗后恢复慢 | wifi_scan 跳扫会占用信道（实测空窗 ~2.6s 后恢复） | 标定/验收期间避免跑 `wifi_scan` |
 | 烧录同步失败（经典板 CH340） | 口不稳/板过热 | 加 `-b 460800`（`flash_tx.bat` 第三参数）；凉板重插；仍失败按 0.1 验 MAC 后换口 |
-| 两块 TX 事件混叠 | 源 MAC 相同（0.2 红线；**tx3 复用 csi_tx_v1 工程最易踩**） | 改 `CONFIG_CSI_SEND_MAC` 为不同本地管理地址，重烧（flash_tx.bat tx1/tx3 已内置防呆） |
+| 两块 TX 事件混叠 | 角色配置用错（tx1 烧成 node3 或反之）：看开机日志 `node_id:` 与 `mac=`，对照 §0.2 身份表 | 以正确角色重烧（`flash_tx.bat` 构建产物 node 防呆会拦截错配构建） |
 
 ## 附 A. REPL 命令速查（cis_console.c 实测语法）
 

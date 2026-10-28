@@ -51,10 +51,20 @@ from PySide6.QtWidgets import (
 )
 
 import protocol
-from store import Record, Store, default_zone_name, frame_to_record
+from store import (Record, Store, NODE_NAMES, default_zone_name,
+                   frame_to_record, link_key, node_name)
 from udp_source import UdpSource
 from serial_source import SerialSource
 from self_test import ProbeResult, _clean_text
+
+
+def observer_arg(name: str) -> str:
+    """节点名 → 固件 REPL 的 observer 参数（'0'~'3'，NODE_NAMES 反查）；
+    未知名原样返回（固件会报 bad mac format，不静默错链）。"""
+    for oid, oname in NODE_NAMES.items():
+        if oname == (name or "").upper():
+            return str(oid)
+    return name or ""
 
 import pyqtgraph as pg
 
@@ -80,23 +90,31 @@ CALIB_WAIT_0X30_S = 45          # 等 0x30 的超时
 # ===========================================================================
 
 class SimSource:
-    """两个 peer 的心跳 1Hz + 特征流 10Hz + 周期性运动事件；回应 train 命令
-    0.8s 后回 0x30（阈值=2×噪声底）。随机序列固定 seed，冒烟可复现。"""
+    """4 节点（TX1/TX2/TX3/S3）× 3 源 = 12 链路的 mesh 模拟：0x01 心跳 1Hz +
+    0x12 特征流 10Hz/链路 + 0x13 周期性运动事件（0x14 标定应答）。回应命令：
+    新格式 `train <observer> <mac> <sec>` → 0.8s 后 0x14；遗留格式
+    `train <mac> <sec>` → 0.8s 后 0x30（兼容旧上位机回归）。随机序列固定
+    seed，冒烟可复现。"""
 
-    def __init__(self, peers: int = 3, feature_hz: float = 10.0,
+    # 节点身份：observer_id ≡ 该节点自身 CSI 源 MAC[5]（0=TX1 1=TX2 2=TX3 3=S3）
+    NODE_MACS = [bytes([0x1A, 0x00, 0x00, 0x00, 0x00, i]) for i in range(4)]
+
+    def __init__(self, peers: int = 4, feature_hz: float = 10.0,
                  event_period: float = 6.0, seed: int = 7):
-        """SimSource：模拟 CSI 数据流。
+        """SimSource：模拟 mesh CSI 数据流。
 
-        peers：模拟的 peer 数量（默认 3，匹配实际硬件配置：TX1/TX2/TX3）。
-               每个 peer 的 source MAC 为 1a:00:00:00:00:01 ~ 1a:00:00:00:00:0n。
+        peers：模拟的 observer 节点数（默认 4 = TX1/TX2/TX3/S3 全网）。
+               每个节点观测其余 3 个节点的源帧 → peers=4 时共 12 条链路。
         """
         self.frame_queue: "queue.Queue[protocol.Frame]" = queue.Queue(maxsize=5000)
         self._sp = protocol.StreamParser()   # 编码字节 → Frame 对象（与串口源同型）
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._rng = random.Random(seed)
-        self._peers = [bytes([0x1A, 0x00, 0x00, 0x00, 0x00, i + 1])
-                       for i in range(peers)]
+        observers = list(range(max(1, min(peers, len(self.NODE_MACS)))))
+        self._links = [(o, self.NODE_MACS[s])       # (observer_id, source_mac)
+                       for o in observers for s in range(len(self.NODE_MACS))
+                       if s != o]
         self._hz = feature_hz
         self._period = event_period
         self._frames_ok = 0
@@ -118,14 +136,22 @@ class SimSource:
             self._thread = None
 
     def send_line(self, text: str) -> bool:
-        """模拟 REPL：train <mac> <sec> → 0.8s 后 0x30；其他命令回 LOG OK。"""
+        """模拟 REPL：train <observer> <mac> <sec> → 0.8s 后 0x14；
+        遗留 train <mac> [sec] → 0.8s 后 0x30；其他命令回 LOG OK。"""
         text = text.strip()
         parts = text.split()
         try:
             if parts and parts[0] == "train" and len(parts) >= 2:
-                mac = bytes(int(b, 16) for b in parts[1].split(":"))
-                dur = int(parts[2]) if len(parts) >= 3 else 15
-                threading.Timer(0.8, self._emit_calib, args=(mac, dur)).start()
+                if len(parts) >= 4:            # 新格式：train <observer> <mac> <sec>
+                    observer = parts[1]
+                    mac = bytes(int(b, 16) for b in parts[2].split(":"))
+                    dur = int(parts[3])
+                    threading.Timer(0.8, self._emit_calib_multi,
+                                    args=(observer, mac, dur)).start()
+                else:                          # 遗留格式：train <mac> [sec]
+                    mac = bytes(int(b, 16) for b in parts[1].split(":"))
+                    dur = int(parts[2]) if len(parts) >= 3 else 15
+                    threading.Timer(0.8, self._emit_calib, args=(mac, dur)).start()
                 return True
             if parts:
                 self._put(protocol.encode_frame(
@@ -152,55 +178,72 @@ class SimSource:
                 self._queue_dropped += 1
 
     def _emit_calib(self, mac: bytes, dur: int):
+        """遗留 0x30 应答（train <mac>，无 observer 前缀）。"""
         noise = 30 + self._rng.randint(0, 8)
         self._put(protocol.build_calib(protocol.CalibResult(
             mac=mac, train_duration=dur, threshold=noise * 2, noise_floor=noise)))
 
+    def _emit_calib_multi(self, observer: str, mac: bytes, dur: int):
+        """mesh 0x14 应答（train <observer> <mac>）。observer 兼容两种形式：
+        '0'~'3' 数字（真机 REPL 形式，与固件 cmd_train 一致）或节点名（S3/TX1…）。"""
+        if len(observer) == 1 and "0" <= observer <= "3":
+            node_id = int(observer)
+        else:
+            node_id = NODE_ID_BY_NAME.get(observer.upper())
+            if node_id is None:
+                node_id = 3                    # 未知 observer 名按 S3 兜底
+        noise = 30 + self._rng.randint(0, 8)
+        self._put(protocol.build_calib_multi(protocol.CalibMulti(
+            observer_id=node_id, mac=mac, train_s=dur,
+            threshold=noise * 2, noise_floor=noise)))
+
     def _loop(self):
         t_start = time.monotonic()
         next_hb = 0.0
-        next_feat = {mac: 0.0 for mac in self._peers}
-        motion_until = {mac: -1.0 for mac in self._peers}      # <now ⇒ 静止
-        next_event = {mac: 2.0 + 1.7 * i + self._rng.uniform(0, 1.0)
-                      for i, mac in enumerate(self._peers)}
-        next_state_frame = {mac: 1e9 for mac in self._peers}
-        phase = {mac: self._rng.uniform(0, 6.28) for mac in self._peers}
+        links = self._links
+        next_feat = {lk: 0.0 for lk in links}
+        motion_until = {lk: -1.0 for lk in links}          # <now ⇒ 静止
+        next_event = {lk: 2.0 + 1.7 * i + self._rng.uniform(0, 1.0)
+                      for i, lk in enumerate(links)}
+        next_state_frame = {lk: 1e9 for lk in links}
+        phase = {lk: self._rng.uniform(0, 6.28) for lk in links}
         while not self._stop.wait(0.02):
             now = time.monotonic() - t_start
             if now >= next_hb:
                 next_hb = now + 1.0
                 self._put(protocol.build_heartbeat(protocol.Heartbeat(
-                    uptime_ms=int(now * 1000), peer_count=len(self._peers),
+                    uptime_ms=int(now * 1000), peer_count=len(links),
                     free_heap=200000 - int(now), dropped_frames=0)))
-            for idx, mac in enumerate(self._peers):
-                if now >= next_feat[mac]:
-                    next_feat[mac] = now + 1.0 / self._hz
-                    motion = now < motion_until[mac]
+            for idx, lk in enumerate(links):
+                obs, mac = lk
+                if now >= next_feat[lk]:
+                    next_feat[lk] = now + 1.0 / self._hz
+                    motion = now < motion_until[lk]
                     var = (self._rng.randint(300, 1200) if motion else
-                           22 + int(8 * (1 + math.sin(now * 0.7 + phase[mac])))
+                           22 + int(8 * (1 + math.sin(now * 0.7 + phase[lk])))
                            + self._rng.randint(0, 6))
-                    self._put(protocol.build_features(protocol.Features(
-                        mac=mac, ts_ms=int(now * 1000),
+                    self._put(protocol.build_features_multi(protocol.FeaturesMulti(
+                        observer_id=obs, mac=mac, ts_ms=int(now * 1000),
                         mean=38 + self._rng.randint(-2, 2),
                         var=var, p2p=(self._rng.randint(60, 200) if motion
                                       else self._rng.randint(2, 12)),
                         rssi=-55 - 3 * idx + self._rng.randint(-1, 1))))
-                if now >= next_event[mac]:
-                    next_event[mac] = now + self._period + self._rng.uniform(0, 2.0)
-                    motion_until[mac] = now + 2.2
-                    next_state_frame[mac] = now
-                if motion_until[mac] > 0 and now >= next_state_frame[mac]:
-                    motion = now < motion_until[mac]
-                    self._put(protocol.build_event(protocol.Event(
-                        mac=mac, name_id=idx + 1,
+                if now >= next_event[lk]:
+                    next_event[lk] = now + self._period + self._rng.uniform(0, 2.0)
+                    motion_until[lk] = now + 2.2
+                    next_state_frame[lk] = now
+                if motion_until[lk] > 0 and now >= next_state_frame[lk]:
+                    motion = now < motion_until[lk]
+                    self._put(protocol.build_event_multi(protocol.EventMulti(
+                        observer_id=obs, mac=mac, name_id=idx + 1,
                         state=1 if motion else 0,
                         score=(self._rng.randint(80, 900) if motion
                                else self._rng.randint(5, 28)),
                         rssi=-58, ts_ms=int(now * 1000))))
                     if motion:
-                        next_state_frame[mac] = now + 0.5      # 运动期 2Hz 重发
+                        next_state_frame[lk] = now + 0.5      # 运动期 2Hz 重发
                     else:
-                        next_state_frame[mac] = 1e9            # STILL 收尾帧
+                        next_state_frame[lk] = 1e9            # STILL 收尾帧
 
 
 # ===========================================================================
@@ -221,23 +264,30 @@ STATE_COLORS_CN = {
     2: "#faad14",  # 存在 - 黄色
 }
 
-# MAC → 设备名称映射（按源 MAC 后字节）
+# MAC → 设备名称映射（按源 MAC 后字节；"03"=S3 RX 自定义 STA MAC）
 MAC_DEVICE_MAP = {
     "00": ("TX1", "经典#1 TX1"),     # 1a:00:00:00:00:00
     "01": ("TX2", "C3 TX2"),         # 1a:00:00:00:00:01
     "02": ("TX3", "经典#2 TX3"),     # 1a:00:00:00:00:02
+    "03": ("S3", "S3 RX"),           # 1a:00:00:00:00:03（mesh 后 S3 也发源帧）
 }
 
+# 节点名 → observer_id（MAC_DEVICE_MAP 键的十六进制值）
+NODE_ID_BY_NAME = {v[0]: int(k, 16) for k, v in MAC_DEVICE_MAP.items()}
+
 class ZoneCard(QFrame):
-    """左列卡片：大状态灯 + 设备名/MAC + score + 最近事件 + RSSI/var
-    + 标定按钮（倒计时逻辑由 Dashboard 统一驱动，本卡只做显示）。"""
+    """左列卡片（每链路一张）：大状态灯 + 设备名 + observer→source 副标题
+    + score + 最近事件 + RSSI/var + 标定按钮（倒计时逻辑由 Dashboard 统一
+    驱动，本卡只做显示）。"""
 
-    calib_requested = Signal(str)          # mac
-    card_clicked = Signal(str)             # mac (卡片被点击时发射)
+    calib_requested = Signal(str, str)     # (observer, mac)
+    card_clicked = Signal(str, str)        # (observer, mac) 卡片被点击时发射
 
-    def __init__(self, mac: str, name: str, parent=None):
+    def __init__(self, mac: str, name: str, observer: str = "", parent=None):
         super().__init__(parent)
         self.mac = mac
+        self.observer = observer
+        self.link_key = link_key(observer, mac)   # 链路键（Dashboard 各表统一键）
         self.zone_name = name
         self._state = None                 # 最近 EVENT 状态
         self.threshold = 0                 # 当前阈值（手动修改后更新）
@@ -257,7 +307,8 @@ class ZoneCard(QFrame):
 
         self.name_label = QLabel(name)
         self.name_label.setStyleSheet("font-size:13pt; font-weight:bold;")
-        self.mac_label = QLabel(mac)
+        # 副标题：链路 observer→source（无 observer 时退回纯 MAC）
+        self.mac_label = QLabel("%s→%s" % (observer, mac) if observer else mac)
         self.mac_label.setStyleSheet("color:#777; font-size:8pt;")
 
         self.score_label = QLabel("score -")
@@ -333,9 +384,12 @@ class ZoneCard(QFrame):
 
     def set_calib_result(self, rec: Record):
         if rec.raw is not None:
+            # 0x30 → train_duration；0x14 → train_s
+            train_s = getattr(rec.raw, "train_duration",
+                              getattr(rec.raw, "train_s", 0))
             self.calib_label.setText("阈值 %d / 噪声底 %d（train %ds）"
                                      % (rec.raw.threshold, rec.raw.noise_floor,
-                                        rec.raw.train_duration))
+                                        train_s))
         else:
             self.calib_label.setText(rec.text)
         self.calib_label.setStyleSheet("color:#1a7f37; font-size:9pt;")
@@ -356,11 +410,11 @@ class ZoneCard(QFrame):
         self.calib_btn.setEnabled(enabled)
 
     def _on_calib_clicked(self):
-        self.calib_requested.emit(self.mac)
+        self.calib_requested.emit(self.observer, self.mac)
 
     def _on_click(self, event):
         """卡片点击事件（用于选择卡片进行阈值调节）。"""
-        self.card_clicked.emit(self.mac)
+        self.card_clicked.emit(self.observer, self.mac)
         # 更新边框样式（视觉上高亮选中的卡片）
         self.setStyleSheet(
             "#zoneCard {background:#eef6ff; border:2px solid #4a9eff;"
@@ -373,25 +427,29 @@ class ZoneCard(QFrame):
 # ===========================================================================
 
 # 设备锚点（归一化坐标：x 0=西→1=东，y 0=北→1=南；与实际方位对应：
-# 经典#2 西北左上 / C3 东北右上 / S3 RX 西南左下 / 经典#1 东南右下）
+# 经典#2 西北左上 / C3 东北右上 / S3 RX 西南左下 / 经典#1 东南右下）。
+# 键 = 节点身份 id（≡ 该节点 CSI 源 MAC[5]），四节点互为 observer/source。
+RX_ANCHOR = (0.15, 0.85)     # S3 RX → 西南（左下）
 ZONE_ANCHORS = {
     "00": (0.85, 0.85),      # 经典#1 TX1 → 东南（右下）
     "01": (0.85, 0.15),      # C3 TX2     → 东北（右上）
     "02": (0.15, 0.15),      # 经典#2 TX3 → 西北（左上）
+    "03": RX_ANCHOR,         # S3 RX      → 西南（左下）
 }
-RX_ANCHOR = (0.15, 0.85)     # S3 RX → 西南（左下）
-ZONE_ACTIVE_MIN = 0.8        # 三链路归一化总响应低于此值 → 判定静止
+ZONE_ACTIVE_MIN = 0.8        # 归一化总响应低于此值 → 判定静止
 ZONE_HOLD_S = 30.0           # 静止后保持"上次活动位置"的时长
 
 
 class ZoneMapWidget(QWidget):
-    """俯视区域图：四角画设备（三 TX + RX），按三链路 var 归一化响应
-    加权显示人的估计位置。静止时保持"上次活动位置"并标注，超时淡出。"""
+    """俯视区域图：四节点锚点间画 12 条有向虚线（source→observer，箭头指向
+    observer），按链路 var 归一化响应加权显示人的估计位置——质心取
+    Σr·midpoint(锚点source, 锚点observer)/Σr。静止时保持"上次活动位置"并
+    标注，超时淡出。"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(316, 330)
-        self._responses: dict[str, float] = {}   # mac → 归一化响应 r
+        self._responses: dict[str, float] = {}   # 链路键 "observer>mac" → 归一化响应 r
         self._names: dict[str, str] = {}
         self._pos: tuple | None = None           # 估计位置 (x,y) 0..1
         self._total = 0.0                        # 总响应
@@ -400,21 +458,41 @@ class ZoneMapWidget(QWidget):
 
     # ---- 数据接口（Dashboard 每 500ms 调一次） ------------------------------
 
+    @staticmethod
+    def _link_midpoint(key: str) -> tuple | None:
+        """链路键 "observer>mac" → (源锚点, observer 锚点) 的中点（归一化）。
+        observer 名或 MAC 末字节无锚点时返回 None（该链路不参与质心）。"""
+        try:
+            obs, mac = key.split(">", 1)
+        except ValueError:
+            return None
+        obs_id = NODE_ID_BY_NAME.get(obs)
+        if obs_id is None:
+            return None
+        a_obs = ZONE_ANCHORS.get("%02x" % obs_id)
+        a_src = ZONE_ANCHORS.get(mac.replace(":", "")[-2:])
+        if a_obs is None or a_src is None:
+            return None
+        return ((a_src[0] + a_obs[0]) / 2.0, (a_src[1] + a_obs[1]) / 2.0)
+
     def update_activity(self, responses: dict[str, float],
                         names: dict[str, str]):
         self._responses = dict(responses)
         self._names = dict(names)
-        total = sum(v for v in self._responses.values() if v > 0)
+        wx = wy = 0.0
+        total = 0.0
+        for key, r in self._responses.items():
+            if r <= 0:
+                continue
+            mid = self._link_midpoint(key)
+            if mid is None:
+                continue
+            total += r
+            wx += mid[0] * r
+            wy += mid[1] * r
         self._total = total
         now = time.time()
         if total >= ZONE_ACTIVE_MIN and self._responses:
-            wx = wy = 0.0
-            for mac, r in self._responses.items():
-                if r <= 0:
-                    continue
-                ax, ay = ZONE_ANCHORS.get(mac, (0.5, 0.5))
-                wx += ax * r
-                wy += ay * r
             self._pos = (wx / total, wy / total)
             self._hold_pos = self._pos
             self._last_active_ts = now
@@ -452,14 +530,34 @@ class ZoneMapWidget(QWidget):
         def to_px(pt):
             return gx + pt[0] * gw, gy + pt[1] * gh
 
-        # 链路虚线 TX→RX
-        p.setPen(QPen(QColor("#bbbbbb"), 1, Qt.PenStyle.DashLine))
-        for mac, axy in ZONE_ANCHORS.items():
-            p.drawLine(*to_px(axy), *to_px(RX_ANCHOR))
+        def draw_directed_line(p1, p2):
+            """有向虚线 source→observer：两端避开设备标记，箭头指向 observer。"""
+            dx, dy = p2[0] - p1[0], p2[1] - p1[1]
+            dist = math.hypot(dx, dy) or 1.0
+            ux, uy = dx / dist, dy / dist
+            pad = 10.0                                  # 避开节点标记半径
+            x1, y1 = p1[0] + ux * pad, p1[1] + uy * pad
+            x2, y2 = p2[0] - ux * pad, p2[1] - uy * pad
+            p.drawLine(int(x1), int(y1), int(x2), int(y2))
+            ang = math.atan2(dy, dx)
+            for da in (2.5, -2.5):                      # 箭头两翼（约±145°）
+                p.drawLine(int(x2), int(y2),
+                           int(x2 + 7 * math.cos(ang + da)),
+                           int(y2 + 7 * math.sin(ang + da)))
 
-        # 设备标记
+        # 12 条有向虚线：每条链路 source→observer（4 节点 × 除自身外 3 源）
+        p.setPen(QPen(QColor("#bbbbbb"), 1, Qt.PenStyle.DashLine))
+        for obs_id, a_obs in ZONE_ANCHORS.items():
+            for src_id, a_src in ZONE_ANCHORS.items():
+                if obs_id == src_id:
+                    continue
+                draw_directed_line(to_px(a_src), to_px(a_obs))
+
+        # 设备标记（S3 用下方绿色圆点单独画）
         p.setFont(QFont("Microsoft YaHei", 8, QFont.Weight.Bold))
         for mac, axy in ZONE_ANCHORS.items():
+            if mac == "03":
+                continue
             x, y = to_px(axy)
             p.setBrush(QBrush(QColor("#4a76d0")))
             p.setPen(Qt.PenStyle.NoPen)
@@ -526,21 +624,21 @@ class Dashboard(QMainWindow):
         self._record_queue: "queue.Queue[Record]" = queue.Queue()   # 回放入口
         self._names: dict[str, str] = {}   # mac → 区域名
         self._provisional: set = set()     # 缺 name_id 的临时名，等 EVENT 修正
-        self._cards: dict[str, ZoneCard] = {}
-        self._series: dict[str, dict] = {} # mac → {"t","var" deque}
+        self._cards: dict[str, ZoneCard] = {}              # 链路键 → 卡片
+        self._series: dict[str, dict] = {} # 链路键 → {"t","var" deque}
         self._curve_items: dict = {}
         self._event_lines: list = []
         self._t0: float | None = None      # 曲线 x 轴原点（首个记录时刻）
-        self._last_seen: dict[str, float] = {}
+        self._last_seen: dict[str, float] = {}             # 链路键 → 最近时刻
         self._hb = None
         self._frames_since_fps = 0
         self._bad_payload = 0
         self._device_info: ProbeResult | None = None   # 启动扫描识别到的设备
         self._device_shown = False                     # 设备信息是否已显示
-        self._discovered_macs: set = set()             # 已发现的 MAC 集合（避免重复日志）
+        self._discovered_macs: set = set()             # 已发现链路键集合（避免重复日志）
         self._selected_card: ZoneCard | None = None    # 当前选中的卡片（用于阈值调节）
-        self._noise_floor: dict[str, float] = {}       # mac → 标定噪声底（CALIB 0x30 回填）
-        self._var_hist: dict[str, deque] = {}          # mac → var 均值历史（120s，未标定时滚动最小值当噪声底代理）
+        self._noise_floor: dict[str, float] = {}       # 链路键 → 标定噪声底（CALIB 0x30/0x14 回填）
+        self._var_hist: dict[str, deque] = {}          # 链路键 → var 均值历史（120s，未标定时滚动最小值当噪声底代理）
         self.frozen = False                            # 冻结状态（暂停 UI 更新）
         self._calib_test_running = False               # 全局标定测试进行中
         self._calib_test_progress = {}                 # {"mac": "counting"/"waiting"/"done"/"timeout"}
@@ -722,7 +820,7 @@ class Dashboard(QMainWindow):
         cmd_row = QHBoxLayout()
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText(
-            "REPL 命令（回车发送）：peer list / train <mac> 15 / threshold save …")
+            "REPL 命令（回车发送）：peer list / train <observer> <mac> 15 / threshold save …")
         self.cmd_edit.returnPressed.connect(self._send_command)
         self.cmd_btn = QPushButton("发送")
         self.cmd_btn.clicked.connect(self._send_command)
@@ -810,7 +908,7 @@ class Dashboard(QMainWindow):
         self.cmd_edit.setEnabled(False)
         self.cmd_btn.setEnabled(False)
         if self._calib:
-            self._cancel_calib(self._calib["mac"])
+            self._cancel_calib(self._calib["key"])
             self._reset_calib_button()
         # 断开时重置全局标定状态
         if self._calib_test_running:
@@ -902,9 +1000,9 @@ class Dashboard(QMainWindow):
         elif name_id and mac in self._provisional:
             self._provisional.discard(mac)
             self._names[mac] = "区域%d" % name_id
-            card = self._cards.get(mac)
-            if card is not None:
-                card.set_name(self._names[mac])
+            for card in self._cards.values():    # 同源 MAC 的所有链路卡
+                if card.mac == mac:
+                    card.set_name(self._names[mac])
         return self._names[mac]
 
     def set_device_mapping(self, peers: list[tuple[str, str]]):
@@ -917,30 +1015,33 @@ class Dashboard(QMainWindow):
         """
         for mac, name in peers:
             self._names[mac] = name
-            # 更新现有卡片
-            if mac in self._cards:
-                self._cards[mac].set_name(name)
+            # 更新现有卡片（同源 MAC 的所有链路卡）
+            for card in self._cards.values():
+                if card.mac == mac:
+                    card.set_name(name)
 
-    def _get_card(self, mac: str, name_id: int = 0) -> ZoneCard:
-        card = self._cards.get(mac)
+    def _get_card(self, key: str, mac: str, observer: str) -> ZoneCard:
+        """按链路键取/建卡片（12 链路各一张，同源不同 observer 分卡）。"""
+        card = self._cards.get(key)
         if card is None:
-            card = ZoneCard(mac, self._name_for(mac, name_id))
+            card = ZoneCard(mac, self._name_for(mac), observer=observer)
             card.calib_requested.connect(self._start_calib)
             card.card_clicked.connect(self._on_card_clicked)  # 连接卡片点击事件
             self.cards_layout.addWidget(card)
             self.cards_hint.hide()
-            self._cards[mac] = card
+            self._cards[key] = card
             card.set_calib_enabled(self._command_channel is not None)
         return card
 
-    def _on_card_clicked(self, mac: str):
+    def _on_card_clicked(self, observer: str, mac: str):
         """卡片被点击时选中（用于阈值调节）。"""
-        self._selected_card = self._cards.get(mac)
+        self._selected_card = self._cards.get(link_key(observer, mac))
         if self._selected_card:
             self.threshold_mac_label.setText(self._selected_card.zone_name + " " + mac)
             # 更新阈值输入框显示当前阈值
             self.threshold_value_edit.setText(str(self._selected_card.threshold))
-            self.log("[选择] 当前卡片：%s (%s)" % (self._selected_card.zone_name, mac))
+            self.log("[选择] 当前卡片：%s (%s→%s)"
+                     % (self._selected_card.zone_name, observer, mac))
         else:
             self.threshold_mac_label.setText("(未选择)")
 
@@ -948,9 +1049,10 @@ class Dashboard(QMainWindow):
         if self._t0 is None:
             self._t0 = rec.ts
         self._frames_since_fps += 1
-        if rec.mac:
-            self._last_seen[rec.mac] = rec.ts
-            card = self._get_card(rec.mac)
+        key = link_key(rec.observer, rec.mac) if rec.mac else None   # 链路键
+        if key is not None:
+            self._last_seen[key] = rec.ts
+            card = self._get_card(key, rec.mac, rec.observer)
             card.update_record(rec)
         if self.store.is_recording:
             self.store.record(rec)
@@ -961,30 +1063,31 @@ class Dashboard(QMainWindow):
             # 首个心跳 → 显示设备自检信息
             self._show_device_info()
         elif kind == "EVENT":
-            # 新 MAC 发现 → 记录链路信息
-            if rec.mac and rec.mac not in self._discovered_macs:
-                self._discovered_macs.add(rec.mac)
-                self.log("[链路] 发现新 MAC: %s (区域 %s)" % (rec.mac.upper(),
-                                                             rec.name or rec.mac))
+            # 新链路发现 → 记录链路信息
+            if key is not None and key not in self._discovered_macs:
+                self._discovered_macs.add(key)
+                self.log("[链路] 发现新链路: %s→%s (区域 %s)"
+                         % (rec.observer, rec.mac.upper(), rec.name or rec.mac))
             self._add_event_line(rec)
             self._add_event_row(rec)
         elif kind == "FEATURES":
             s = self._series.setdefault(
-                rec.mac, {"t": deque(maxlen=CURVE_MAX_POINTS),
-                          "var": deque(maxlen=CURVE_MAX_POINTS)})
+                key, {"t": deque(maxlen=CURVE_MAX_POINTS),
+                      "var": deque(maxlen=CURVE_MAX_POINTS)})
             s["t"].append(rec.ts)
             s["var"].append(rec.var or 0)
         elif kind == "CALIB":
             self._add_event_row(rec)
-            self.log("CALIB %s %s" % (rec.mac, rec.text))
+            self.log("CALIB %s→%s %s" % (rec.observer, rec.mac, rec.text))
             # 回填噪声底（区域俯视图归一化响应用）
-            if rec.raw is not None and getattr(rec.raw, "noise_floor", None):
-                self._noise_floor[rec.mac] = float(rec.raw.noise_floor)
-            if self._calib and self._calib["mac"] == rec.mac:
-                self._finish_calib(rec)
-                # 全局标定测试收到 0x30 结果时也更新
+            if key is not None and rec.raw is not None \
+                    and getattr(rec.raw, "noise_floor", None):
+                self._noise_floor[key] = float(rec.raw.noise_floor)
+            if self._calib and self._calib["key"] == key:
+                self._finish_calib(key)
+                # 全局标定测试收到 0x30/0x14 结果时也更新
                 if self._calib_test_running:
-                    self._global_calib_on_result(rec.mac)
+                    self._global_calib_on_result(key)
         elif kind == "LOG":
             self.log("RX: %s" % rec.text)
 
@@ -1004,13 +1107,16 @@ class Dashboard(QMainWindow):
             self.plot.removeItem(self._event_lines.pop(0))
 
     def _refresh_plot(self):
-        for mac, s in self._series.items():
-            item = self._curve_items.get(mac)
+        for key, s in self._series.items():
+            item = self._curve_items.get(key)
             if item is None:
                 color = PEER_COLORS[len(self._curve_items) % len(PEER_COLORS)]
+                obs, _, mac = key.partition(">")
+                src_name = (self._names.get(mac)
+                            or ZoneCard.device_name_from_mac(mac) or mac)
                 item = self.plot.plot(pen=pg.mkPen(QColor(color), width=1),
-                                      name=self._names.get(mac, mac))
-                self._curve_items[mac] = item
+                                      name="%s→%s" % (obs, src_name))
+                self._curve_items[key] = item
             if s["t"]:
                 t0 = self._t0 or s["t"][0]
                 item.setData([t - t0 for t in s["t"]], list(s["var"]))
@@ -1048,9 +1154,9 @@ class Dashboard(QMainWindow):
             self.plot.removeItem(line)
         self._event_lines.clear()
         # 清除曲线数据
-        for mac in self._series:
-            self._series[mac]["t"].clear()
-            self._series[mac]["var"].clear()
+        for key in self._series:
+            self._series[key]["t"].clear()
+            self._series[key]["var"].clear()
         for item in self._curve_items.values():
             self.plot.removeItem(item)
         self._curve_items.clear()
@@ -1092,24 +1198,25 @@ class Dashboard(QMainWindow):
 
     # ------------------------------------------------------------ 标定 ------
 
-    def _start_calib(self, mac: str):
-        card = self._cards.get(mac)
+    def _start_calib(self, observer: str, mac: str):
+        key = link_key(observer, mac)
+        card = self._cards.get(key)
         if card is None:
             return
         if self._command_channel is None:
             self.log("标定失败：当前数据源无命令通道（REPL 走串口）")
             return
         if self._calib is not None:
-            self.log("标定失败：已有进行中的标定（%s）" % self._calib["mac"])
+            self.log("标定失败：已有进行中的标定（%s）" % self._calib["key"])
             return
         if self._calib_test_running:
             self.log("标定失败：全局标定测试进行中")
             return
-        self._calib = {"mac": mac, "count": CALIB_COUNTDOWN_S,
-                       "timer": None, "timeout": None}
+        self._calib = {"key": key, "observer": observer, "mac": mac,
+                       "count": CALIB_COUNTDOWN_S, "timer": None, "timeout": None}
         card.calib_btn.setEnabled(False)
         card.set_calib_text("清场倒计时 %ds…" % CALIB_COUNTDOWN_S, busy=True)
-        self.log("标定[%s]：%ds 倒计时，请清场离场" % (mac, CALIB_COUNTDOWN_S))
+        self.log("标定[%s]：%ds 倒计时，请清场离场" % (key, CALIB_COUNTDOWN_S))
         timer = QTimer(self)
         timer.setInterval(1000)
         timer.timeout.connect(self._calib_tick)
@@ -1120,7 +1227,7 @@ class Dashboard(QMainWindow):
         if not self._calib:
             return
         self._calib["count"] -= 1
-        card = self._cards.get(self._calib["mac"])
+        card = self._cards.get(self._calib["key"])
         if self._calib["count"] > 0:
             if card:
                 card.set_calib_text("清场倒计时 %ds…" % self._calib["count"], busy=True)
@@ -1130,20 +1237,24 @@ class Dashboard(QMainWindow):
         self._calib["timer"] = None
         ok = False
         if self._command_channel is not None:
+            # mesh 命令：train <observer> <mac> <sec>（observer 必须是固件可解析的 '0'~'3'）
             ok = self._command_channel(
-                "train %s %d" % (self._calib["mac"], CALIB_COUNTDOWN_S))
+                "train %s %s %d" % (observer_arg(self._calib["observer"]),
+                                    self._calib["mac"], CALIB_COUNTDOWN_S))
         if ok:
             if card:
-                card.set_calib_text("等待 0x30 标定结果…", busy=True)
+                card.set_calib_text("等待 0x30/0x14 标定结果…", busy=True)
             timeout = QTimer(self)
             timeout.setSingleShot(True)
             timeout.setInterval(CALIB_WAIT_0X30_S * 1000)
             timeout.timeout.connect(self._calib_timeout)
             timeout.start()
             self._calib["timeout"] = timeout
-            self.log("已发送 train %s %d" % (self._calib["mac"], CALIB_COUNTDOWN_S))
+            self.log("已发送 train %s %s %d" % (self._calib["observer"],
+                                                self._calib["mac"],
+                                                CALIB_COUNTDOWN_S))
         else:
-            self.log("标定[%s]中止：命令通道写入失败" % self._calib["mac"])
+            self.log("标定[%s]中止：命令通道写入失败" % self._calib["key"])
             if card:
                 card.set_calib_text("train 命令发送失败", busy=False)
             self._reset_calib_button()
@@ -1152,9 +1263,9 @@ class Dashboard(QMainWindow):
     def _calib_timeout(self):
         if not self._calib:
             return
-        self.log("标定[%s]超时：%.0fs 内未收到 0x30"
-                 % (self._calib["mac"], CALIB_WAIT_0X30_S))
-        card = self._cards.get(self._calib["mac"])
+        self.log("标定[%s]超时：%.0fs 内未收到 0x30/0x14"
+                 % (self._calib["key"], CALIB_WAIT_0X30_S))
+        card = self._cards.get(self._calib["key"])
         if card:
             card.set_calib_text("标定超时", busy=False)
         self._reset_calib_button()
@@ -1163,16 +1274,16 @@ class Dashboard(QMainWindow):
     # ---- 全局标定测试 -------------------------------------------------------
 
     def _on_global_calib_test(self):
-        """全量标定测试：倒计时后向所有 peer 发 train，等 0x30 结果。"""
+        """全量标定测试：倒计时后向所有链路发 train <observer> <mac>，等 0x30/0x14。"""
         if self._calib_test_running:
             self.log("[标定测试] 已有进行中的标定测试")
             return
         if self._command_channel is None:
             self.log("[标定测试] 失败：无命令通道（需串口连接）")
             return
-        all_macs = list(self._cards.keys())
-        if not all_macs:
-            self.log("[标定测试] 暂无已发现的 peer，请先运行一段时间再标定")
+        all_keys = list(self._cards.keys())
+        if not all_keys:
+            self.log("[标定测试] 暂无已发现的链路，请先运行一段时间再标定")
             return
         self._calib_test_running = True
         self._calib_test_countdown = CALIB_TEST_COUNTDOWN_S
@@ -1181,8 +1292,8 @@ class Dashboard(QMainWindow):
         for card in self._cards.values():
             card.calib_btn.setEnabled(False)
         self.global_calib_label.setText("⏱ 全量标定 %ds…" % CALIB_TEST_COUNTDOWN_S)
-        self.log("[标定测试] %d 个 peer 准备，%ds 倒计时，请清场" % (len(all_macs), CALIB_TEST_COUNTDOWN_S))
-        self._calib_test_progress = {mac: "counting" for mac in all_macs}
+        self.log("[标定测试] %d 条链路准备，%ds 倒计时，请清场" % (len(all_keys), CALIB_TEST_COUNTDOWN_S))
+        self._calib_test_progress = {key: "counting" for key in all_keys}
         timer = QTimer(self)
         timer.setInterval(1000)
         timer.timeout.connect(self._global_calib_tick)
@@ -1200,25 +1311,30 @@ class Dashboard(QMainWindow):
             self._calib_test_timer = None
             self._fire_train_all()
             return
-        for card in self._cards.values():
-            if self._calib_test_progress.get(card.mac) == "counting":
-                card.set_calib_text("标定倒计时 %ds…" % count, busy=True)
+        for key, status in self._calib_test_progress.items():
+            if status == "counting":
+                card = self._cards.get(key)
+                if card:
+                    card.set_calib_text("标定倒计时 %ds…" % count, busy=True)
 
     def _fire_train_all(self):
         all_done = True
-        for mac in list(self._calib_test_progress.keys()):
-            if self._calib_test_progress[mac] != "counting":
+        for key in list(self._calib_test_progress.keys()):
+            if self._calib_test_progress[key] != "counting":
                 continue
-            self._calib_test_progress[mac] = "waiting"
-            ok = self._command_channel("train %s %d" % (mac, CALIB_COUNTDOWN_S))
+            self._calib_test_progress[key] = "waiting"
+            obs, _, mac = key.partition(">")     # 链路键 "observer>mac"
+            # observer 节点名 → 固件可解析的 '0'~'3'（真机 REPL 只认数字或 MAC）
+            ok = self._command_channel("train %s %s %d"
+                                       % (observer_arg(obs), mac, CALIB_COUNTDOWN_S))
             if ok:
-                card = self._cards.get(mac)
+                card = self._cards.get(key)
                 if card:
-                    card.set_calib_text("等待 0x30 标定结果…", busy=True)
-                self.log("[标定测试] → train %s %ds" % (mac, CALIB_COUNTDOWN_S))
+                    card.set_calib_text("等待 0x30/0x14 标定结果…", busy=True)
+                self.log("[标定测试] → train %s %s %ds" % (obs, mac, CALIB_COUNTDOWN_S))
             else:
-                self.log("[标定测试] ✗ train %s 发送失败" % mac)
-                self._calib_test_progress[mac] = "fail"
+                self.log("[标定测试] ✗ train %s 发送失败" % key)
+                self._calib_test_progress[key] = "fail"
                 all_done = False
         if all_done:
             self._calib_test_timeout_timer = QTimer(self)
@@ -1231,14 +1347,14 @@ class Dashboard(QMainWindow):
             self._calib_test_running = False
             self.global_calib_btn.setEnabled(True)
 
-    def _global_calib_on_result(self, mac: str):
-        """收到某个 peer 的 0x30 标定结果。"""
-        if mac in self._calib_test_progress:
-            self._calib_test_progress[mac] = "done"
-            card = self._cards.get(mac)
+    def _global_calib_on_result(self, key: str):
+        """收到某条链路的 0x30/0x14 标定结果。"""
+        if key in self._calib_test_progress:
+            self._calib_test_progress[key] = "done"
+            card = self._cards.get(key)
             if card:
                 card.set_calib_text("标定完成 ✓", busy=False)
-            self.log("[标定测试] ✓ %s 标定结果已接收" % mac)
+            self.log("[标定测试] ✓ %s 标定结果已接收" % key)
         remaining = [v for v in self._calib_test_progress.values()
                      if v in ("counting", "waiting")]
         if not remaining:
@@ -1264,13 +1380,13 @@ class Dashboard(QMainWindow):
                 pass
 
     def _global_calib_timeout(self):
-        for mac, status in self._calib_test_progress.items():
+        for key, status in self._calib_test_progress.items():
             if status == "waiting":
-                self._calib_test_progress[mac] = "timeout"
-                card = self._cards.get(mac)
+                self._calib_test_progress[key] = "timeout"
+                card = self._cards.get(key)
                 if card:
                     card.set_calib_text("标定超时", busy=False)
-                self.log("[标定测试] ✗ %s 标定超时" % mac)
+                self.log("[标定测试] ✗ %s 标定超时" % key)
         self.global_calib_label.setText("⚠ 标定超时")
         self._global_calib_test_complete()
 
@@ -1294,23 +1410,23 @@ class Dashboard(QMainWindow):
             except:
                 pass
 
-    def _finish_calib(self, rec: Record):
-        self._cancel_calib(rec.mac)
+    def _finish_calib(self, key: str):
+        self._cancel_calib(key)
         self._reset_calib_button()
 
-    def _cancel_calib(self, mac: str):
-        if self._calib and self._calib["mac"] == mac:
-            for key in ("timer", "timeout"):
-                t = self._calib.get(key)
+    def _cancel_calib(self, key: str):
+        if self._calib and self._calib["key"] == key:
+            for t in (self._calib.get("timer"), self._calib.get("timeout")):
                 if t is not None:
                     t.stop()
                     t.deleteLater()
             self._calib = None
 
-    def _reset_calib_button(self):
-        mac = self._calib["mac"] if self._calib else None
+    def _reset_calib_button(self, key: str | None = None):
+        if key is None:
+            key = self._calib["key"] if self._calib else None
         for card in self._cards.values():
-            if mac is None or card.mac == mac:
+            if key is None or card.link_key == key:
                 card.calib_btn.setText("重新标定 %ds" % CALIB_COUNTDOWN_S)
                 card.calib_btn.setEnabled(self._command_channel is not None)
 
@@ -1355,15 +1471,24 @@ class Dashboard(QMainWindow):
             self.log("[阈值] 阈值必须是整数 (centi-var)")
             return
 
+        # 12 链路守卫：固件 threshold 命令只作用于 S3 本地链路（CIS_OBSERVER_SELF），
+        # 远端链路（observer≠S3）发了也不生效，还会污染卡片回显
+        sel = self._selected_card
+        if sel is not None and (sel.observer or "").upper() != "S3":
+            self.log("[阈值] %s 是远端链路（observer=%s）：固件暂不支持 PC 远程设阈值，"
+                     "请对该链路重新标定以更新阈值" % (selected_mac, sel.observer))
+            return
+
         # 发送阈值修改命令
         command = "threshold %s %d" % (selected_mac, new_val)
         if self._command_channel:
             ok = self._command_channel(command)
             self.log("[%s] 阈值修改：阈值=%d c  %s" % (
                 selected_mac, new_val, "成功" if ok else "失败"))
-            # 更新卡片显示
-            if self._selected_card and self._selected_card.mac == selected_mac:
-                self._selected_card.set_threshold(new_val)
+            # 更新卡片显示（仅本地链路卡）
+            if sel is not None and sel.mac == selected_mac \
+                    and (sel.observer or "").upper() == "S3":
+                sel.set_threshold(new_val)
         else:
             self.log("[阈值] 命令通道不可用")
 
@@ -1466,17 +1591,18 @@ class Dashboard(QMainWindow):
         else:
             self.rec_label.setText("○ 未记录")
             self.rec_label.setStyleSheet("color:#888;")
-        # 卡片新鲜度
-        for mac, card in self._cards.items():
-            ts = self._last_seen.get(mac)
+        # 卡片新鲜度（按链路键）
+        for key, card in self._cards.items():
+            ts = self._last_seen.get(key)
             card.set_stale(ts is None or now - ts > STALE_AFTER_S)
         # 区域俯视图更新
         self._update_zone_map(now)
 
     def _update_zone_map(self, now: float):
-        """计算三链路归一化响应，驱动区域俯视图（粗粒度定位）。"""
+        """计算 12 链路归一化响应，驱动区域俯视图（粗粒度定位）。
+        键 = 链路键 "observer>mac"，ZoneMap 按源/observer 锚点中点加权质心。"""
         responses: dict[str, float] = {}
-        for mac, s in self._series.items():
+        for key, s in self._series.items():
             if not s["var"]:
                 continue
             # 最近 2s 窗口的 var 均值
@@ -1486,14 +1612,14 @@ class Dashboard(QMainWindow):
                 recent = [s["var"][-1]]
             avg = sum(recent) / len(recent)
             # 噪声底：优先标定值；否则用 120s 滚动最小值 ×1.25 作代理
-            hist = self._var_hist.setdefault(mac, deque(maxlen=240))
+            hist = self._var_hist.setdefault(key, deque(maxlen=240))
             hist.append(avg)
-            nf = self._noise_floor.get(mac)
+            nf = self._noise_floor.get(key)
             if not nf:
                 nf = max(1.0, min(hist) * 1.25)
             # 归一化响应：涨幅超出噪声底的倍数，封顶 10 防单链路爆表
             r = max(0.0, avg / nf - 1.0)
-            responses[mac] = min(10.0, r)
+            responses[key] = min(10.0, r)
         self.zone_map.update_activity(responses, self._names)
 
     # ------------------------------------------------------------ 关闭 ------
@@ -1502,7 +1628,7 @@ class Dashboard(QMainWindow):
         for t in (self._poll_timer, self._plot_timer, self._stat_timer):
             t.stop()
         if self._calib:
-            self._cancel_calib(self._calib["mac"])
+            self._cancel_calib(self._calib["key"])
         self._stop_source()
         if self.store.is_recording:
             self.store.stop_session()

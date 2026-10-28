@@ -16,6 +16,7 @@
 #include "lwip/ip_addr.h"
 
 #include "cis_wifi.h"
+#include "cis_protocol.h"   /* cis_self_source_mac（多节点 observer 身份） */
 
 static const char *TAG = "cis_wifi";
 
@@ -105,6 +106,14 @@ static void wifi_task(void *arg)
         sta_config.sta.scan_method = WIFI_FAST_SCAN;
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
+        /* 多节点身份：STA connect 前设本节点 CSI 源 MAC 1a:00:00:00:00:0x（末字节 =
+         * observer_id）。WiFi 已由 esp-radar 拉起（esp_wifi_set_mac 可在启动后调用，
+         * 同 TX 板 csi_send），DIRECT 模式不走此路径、由 cis_mesh_start 设置。 */
+        uint8_t self_mac[6];
+        cis_self_source_mac(self_mac);
+        ESP_ERROR_CHECK(esp_wifi_set_mac(WIFI_IF_STA, self_mac));
+        ESP_LOGI(TAG, "STA source MAC set to " MACSTR " (observer_id=0x%02x)",
+                 MAC2STR(self_mac), self_mac[5]);
         ESP_LOGI(TAG, "NVS creds found (ssid=%s), connecting...", s_ssid);
         esp_wifi_connect();
     } else {

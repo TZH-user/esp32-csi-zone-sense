@@ -24,6 +24,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import protocol
+from store import node_name
 from serial_source import SerialSource
 
 
@@ -37,6 +38,13 @@ def format_event(ev: protocol.Event, seq: int | None = None) -> str:
 def format_features(f: protocol.Features) -> str:
     return ("FEATURES mac=%s ts_ms=%d mean=%d var=%d p2p=%d rssi=%d"
             % (protocol.format_mac(f.mac), f.ts_ms, f.mean, f.var, f.p2p, f.rssi))
+
+
+def format_features_multi(fm: protocol.FeaturesMulti) -> str:
+    """0x12 特征·多节点：observer 为节点名（≡其源 MAC[5]）。"""
+    return ("FEATURES_MULTI observer=%s mac=%s ts_ms=%d mean=%d var=%d p2p=%d rssi=%d"
+            % (node_name(fm.observer_id), protocol.format_mac(fm.mac),
+               fm.ts_ms, fm.mean, fm.var, fm.p2p, fm.rssi))
 
 
 def format_stats(stats: dict) -> str:
@@ -55,7 +63,7 @@ def main(argv=None) -> int:
     ap.add_argument("--baud", type=int, default=2_000_000, help="波特率（默认 2000000）")
     ap.add_argument("--duration", type=float, default=None,
                     help="运行秒数后正常退出；缺省直到 Ctrl+C")
-    ap.add_argument("--features", action="store_true", help="打印 0x11 特征流行")
+    ap.add_argument("--features", action="store_true", help="打印 0x11/0x12 特征流行")
     ap.add_argument("--heartbeat", action="store_true", help="打印 0x01 心跳行")
     ap.add_argument("--log", action="store_true", help="打印 0x20 日志回显/未知类型帧")
     ap.add_argument("--stats-interval", type=float, default=5.0,
@@ -102,6 +110,10 @@ def main(argv=None) -> int:
                         print(format_event(ev, events))
                 elif frame.type == protocol.TYPE_FEATURES and args.features:
                     print(format_features(protocol.decode_payload(frame)))
+                elif frame.type == protocol.TYPE_FEATURE_MULTI and args.features:
+                    # 0x12 特征·多节点；0x13/0x14 不专设分支，
+                    # 落入末尾 --log 通用透传（FRAME type=... 行）
+                    print(format_features_multi(protocol.decode_payload(frame)))
                 elif frame.type == protocol.TYPE_HEARTBEAT and args.heartbeat:
                     hb = protocol.decode_payload(frame)
                     print("HEARTBEAT uptime_ms=%d peers=%d free_heap=%d dropped=%d"

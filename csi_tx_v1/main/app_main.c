@@ -28,6 +28,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 
+#include "cis_csi_rx.h"
+#include "cis_tx_train.h"
+#include "cis_now.h"
+
 #define CONFIG_LESS_INTERFERENCE_CHANNEL   6 /* used by C5/C6 paths only; esp32 STA follows AP channel */
 #define CONFIG_WIFI_SSID                   "1003-k"
 #define CONFIG_WIFI_PASSWORD               "th880511"
@@ -50,7 +54,13 @@
 #define ESP_IF_WIFI_STA ESP_MAC_WIFI_STA
 #endif
 
-static const uint8_t CONFIG_CSI_SEND_MAC[] = {0x1a, 0x00, 0x00, 0x00, 0x00, 0x00};  /* TX1: classic#1 */
+/* CSI 源 MAC：本地管理地址 1a:00:00:00:00:<last>，末字节 = 本节点 mesh
+ * observer_id，由 Kconfig CIS_TX_NODE 派生（main/Kconfig.projbuild）：
+ *   0x00 = node1/经典#1(TX1)、0x01 = C3(TX2)、0x02 = node3/经典#2(TX3)、
+ *   0x03 = S3 RX —— 四节点末字节必须互异（docs/标定SOP.md §0.2）。
+ * 换板卡角色 = 换 Kconfig 选择（flash_tx.bat tx3 以 sdkconfig.defaults.tx3
+ * + build_tx3 构建），不再改源码换 MAC。 */
+static const uint8_t CONFIG_CSI_SEND_MAC[] = {0x1a, 0x00, 0x00, 0x00, 0x00, CONFIG_CIS_TX_MAC_LAST};
 static const char *TAG = "csi_send";
 
 static EventGroupHandle_t s_wifi_event_group;
@@ -229,11 +239,27 @@ void app_main()
     };
     wifi_esp_now_init(peer);
 
-    ESP_LOGI(TAG, "================ CSI SEND ================");
+    /**
+     * @brief Mesh observer：CSI 直收白名单源 + 特征聚包单播 S3 + CMD_TRAIN 标定
+     *        （顺序：白名单/阈值恢复 → S3 peer/打包任务 → 打开 CSI + 排窗 timer）
+     */
+    ESP_ERROR_CHECK(cis_csi_rx_init());
+    ESP_ERROR_CHECK(cis_tx_train_init());
+    ESP_ERROR_CHECK(cis_now_init());
+    ESP_ERROR_CHECK(cis_csi_rx_start());
+
+    ESP_LOGI(TAG, "================ CSI SEND + MESH OBSERVER ================");
     ESP_LOGI(TAG, "ap: %s, send_frequency: %d, mac: " MACSTR,
              CONFIG_WIFI_SSID, CONFIG_SEND_FREQUENCY, MAC2STR(CONFIG_CSI_SEND_MAC));
-    ESP_LOGI(TAG, "TX node (classic ESP32), source MAC last byte: 0x%02x", CONFIG_CSI_SEND_MAC[5]);
-    ESP_LOGI(TAG, "Role: TX1 (classic#1) | TX3 (classic#2) — check last byte to distinguish");
+    ESP_LOGI(TAG, "node_id: %d (Kconfig CIS_TX_NODE_ID), observer_id/source MAC last byte: 0x%02x",
+             CONFIG_CIS_TX_NODE_ID, CONFIG_CSI_SEND_MAC[5]);
+#if CONFIG_CIS_TX_NODE_ID == 3
+    ESP_LOGI(TAG, "Role: node3 (classic#2, TX3) — built from sdkconfig.defaults.tx3");
+#else
+    ESP_LOGI(TAG, "Role: node1 (classic#1, TX1) — default build config");
+#endif
+    ESP_LOGI(TAG, "CSI observed-source whitelist printed above by cis_csi_rx; "
+             "100Hz source frames unchanged");
 
     for (uint32_t count = 0; ; ++count) {
         esp_err_t ret = esp_now_send(peer.peer_addr, (const uint8_t *)&count, sizeof(count));

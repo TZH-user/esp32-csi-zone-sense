@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "esp_err.h"
+#include "cis_protocol.h"   /* CIS_LINK_MAX / CIS_OBSERVER_SELF */
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,6 +53,17 @@ esp_err_t cis_peer_set_threshold(const uint8_t mac[6], uint16_t threshold_c);
 
 /** 把内存表整体写 NVS（`threshold save` 用） */
 esp_err_t cis_peer_save(void);
+
+/* ---- 链路阈值持久化（cis_link NVS 命名空间，多节点升级 2026-10） ----
+ * 12 链路（observer≠source，cis_protocol.h cis_link_slot）的 centi-var 阈值，
+ * blob = magic(4B) + 12×u16（链路槽位序，LE；无效槽写 0=用默认）。
+ * load 挂在 cis_mesh 启动，save 挂在 0x14（CALIB_RSP）回填。 */
+
+/** 读链路阈值表（无有效 blob 时全 0 = 各槽用默认阈值） */
+void cis_link_thr_load(uint16_t thr[CIS_LINK_MAX]);
+
+/** 写链路阈值表并 commit */
+esp_err_t cis_link_thr_save(const uint16_t thr[CIS_LINK_MAX]);
 
 /* ---- peer scan：最近 CSI 源 MAC 观测表（cis_csi_cb 每包更新） ---- */
 

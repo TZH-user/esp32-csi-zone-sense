@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "F:/ESP/projects/ESP32-CIS/csi_tx_v1/build_tx3/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}

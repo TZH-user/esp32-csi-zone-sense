@@ -6,6 +6,11 @@
  * UDP 可选（默认关，端口 3333，同帧格式，目标默认 255.255.255.255 广播）。
  * 控制台日志与帧在串口上字节交织是设计预期（实施计划 §5：PC 端 0xAA55 搜帧 +
  * CRC 校验 + 失步重同步）。
+ *
+ * 多节点升级（2026-10）：track 键 = (observer, mac) 7 字节，本地雷达链路
+ * observer=CIS_OBSERVER_SELF，远端链路（cis_mesh 汇聚）observer=发送方 node_id，
+ * 共 12 链路统一发 0x12/0x13/0x14；CIS_LEGACY_FRAMES=y 时本地链路同时补发
+ * 遗留 0x10/0x11/0x30（回归对照）。
  */
 #include <string.h>
 #include <stdio.h>
@@ -39,6 +44,7 @@ typedef enum {
 
 typedef struct {
     msg_type_t type;
+    uint8_t  observer;          /* 发送方源 MAC[5]（链路 key 的一部分） */
     uint8_t  mac[6];
     uint8_t  state;
     int8_t   rssi;
@@ -47,7 +53,22 @@ typedef struct {
     char     text[96];          /* MSG_LOG */
 } report_msg_t;
 
-#define MSG_QUEUE_LEN  64
+/* 12 链路 × 10Hz 特征 + 事件突发 + 日志；64 时事件突发会挤掉特征候选（多节点扩容） */
+#define MSG_QUEUE_LEN  128
+
+/* 遗留帧补发开关（回归对照）：仅对本地链路（observer=self）补发 0x10/0x11/0x30 */
+#ifdef CONFIG_CIS_LEGACY_FRAMES
+static inline bool legacy_self(uint8_t observer)
+{
+    return observer == CIS_OBSERVER_SELF;
+}
+#else
+static inline bool legacy_self(uint8_t observer)
+{
+    (void)observer;
+    return false;
+}
+#endif
 
 static QueueHandle_t s_queue;
 static bool s_enable = true;
@@ -74,8 +95,9 @@ static void udp_refresh_target(void)
     }
 }
 
-/* 每个 peer 的最新特征 + 发送节拍 */
+/* 每条链路的最新特征 + 发送节拍（key = (observer, mac)，本地+远端共 12 条） */
 typedef struct {
+    uint8_t  observer;
     uint8_t  mac[6];
     bool     used;
     uint16_t mean_c, var_c, p2p_c;
@@ -88,7 +110,7 @@ typedef struct {
     uint32_t last_event_ms;
 } feat_track_t;
 
-#define FEAT_TRACK_MAX  CIS_PEER_MAX
+#define FEAT_TRACK_MAX  CIS_LINK_MAX     /* 4 observer × 3 source = 12（原 CIS_PEER_MAX=8） */
 static feat_track_t s_track[FEAT_TRACK_MAX];
 
 static uint32_t s_dropped_queue, s_dropped_uart;
@@ -157,11 +179,12 @@ static void push_msg(const report_msg_t *msg)
     }
 }
 
-void cis_report_feature(const uint8_t mac[6], uint32_t ts_ms,
-                        uint16_t mean_c, uint16_t var_c, uint16_t p2p_c, int8_t rssi)
+void cis_report_feature_ex(uint8_t observer, const uint8_t mac[6], uint32_t ts_ms,
+                           uint16_t mean_c, uint16_t var_c, uint16_t p2p_c, int8_t rssi)
 {
     report_msg_t m = {
         .type = MSG_FEATURE,
+        .observer = observer,
         .rssi = rssi,
         .a = mean_c, .b = var_c, .c = p2p_c,
         .ts_ms = ts_ms,
@@ -170,11 +193,18 @@ void cis_report_feature(const uint8_t mac[6], uint32_t ts_ms,
     push_msg(&m);
 }
 
-void cis_report_event(const uint8_t mac[6], uint8_t state, uint16_t score_c,
-                      int8_t rssi, uint32_t ts_ms)
+void cis_report_feature(const uint8_t mac[6], uint32_t ts_ms,
+                        uint16_t mean_c, uint16_t var_c, uint16_t p2p_c, int8_t rssi)
+{
+    cis_report_feature_ex(CIS_OBSERVER_SELF, mac, ts_ms, mean_c, var_c, p2p_c, rssi);
+}
+
+void cis_report_event_ex(uint8_t observer, const uint8_t mac[6], uint8_t state,
+                         uint16_t score_c, int8_t rssi, uint32_t ts_ms)
 {
     report_msg_t m = {
         .type = MSG_EVENT,
+        .observer = observer,
         .state = state,
         .rssi = rssi,
         .a = score_c,
@@ -184,15 +214,28 @@ void cis_report_event(const uint8_t mac[6], uint8_t state, uint16_t score_c,
     push_msg(&m);
 }
 
-void cis_report_train_result(const uint8_t mac[6], uint16_t train_s,
-                             uint16_t threshold_c, uint16_t noise_c)
+void cis_report_event(const uint8_t mac[6], uint8_t state, uint16_t score_c,
+                      int8_t rssi, uint32_t ts_ms)
+{
+    cis_report_event_ex(CIS_OBSERVER_SELF, mac, state, score_c, rssi, ts_ms);
+}
+
+void cis_report_train_result_ex(uint8_t observer, const uint8_t mac[6], uint16_t train_s,
+                                uint16_t threshold_c, uint16_t noise_c)
 {
     report_msg_t m = {
         .type = MSG_TRAIN,
+        .observer = observer,
         .a = train_s, .b = threshold_c, .c = noise_c,
     };
     memcpy(m.mac, mac, 6);
     push_msg(&m);
+}
+
+void cis_report_train_result(const uint8_t mac[6], uint16_t train_s,
+                             uint16_t threshold_c, uint16_t noise_c)
+{
+    cis_report_train_result_ex(CIS_OBSERVER_SELF, mac, train_s, threshold_c, noise_c);
 }
 
 void cis_report_log(const char *fmt, ...)
@@ -220,12 +263,12 @@ static void send_heartbeat(void)
 
 /* ---- 任务 ---- */
 
-static feat_track_t *track_find(const uint8_t mac[6], bool create)
+static feat_track_t *track_find(uint8_t observer, const uint8_t mac[6], bool create)
 {
     feat_track_t *free_slot = NULL;
     for (int i = 0; i < FEAT_TRACK_MAX; i++) {
         if (s_track[i].used) {
-            if (memcmp(s_track[i].mac, mac, 6) == 0) {
+            if (s_track[i].observer == observer && memcmp(s_track[i].mac, mac, 6) == 0) {
                 return &s_track[i];
             }
         } else if (!free_slot) {
@@ -234,6 +277,7 @@ static feat_track_t *track_find(const uint8_t mac[6], bool create)
     }
     if (create && free_slot) {
         memset(free_slot, 0, sizeof(*free_slot));
+        free_slot->observer = observer;
         memcpy(free_slot->mac, mac, 6);
         free_slot->used = true;
         return free_slot;
@@ -243,19 +287,34 @@ static feat_track_t *track_find(const uint8_t mac[6], bool create)
 
 static void handle_train(const report_msg_t *m)
 {
-    /* 阈值持久化（report 任务上下文，低优先级写 NVS） */
-    cis_peer_set_threshold(m->mac, m->b);
-    cis_peer_save();
+    if (m->observer == CIS_OBSERVER_SELF) {
+        /* 本地链路：阈值入 peer 表并持久化（远端链路阈值由 cis_mesh 回填链路表 + cis_link） */
+        cis_peer_set_threshold(m->mac, m->b);
+        cis_peer_save();
+    }
 
-    cis_payload_train_t tr = {
+    /* 0x14 标定·多节点（全部 12 链路统一） */
+    cis_payload_train_multi_t tr = {
+        .observer_id = m->observer,
         .train_s = m->a,
         .threshold = m->b,
         .noise_floor = m->c,
     };
     memcpy(tr.mac, m->mac, 6);
-    cis_report_send_frame(CIS_FT_TRAIN_RESULT, &tr, sizeof(tr));
-    ESP_LOGI(TAG, "0x30 train result " MACSTR ": thr=%u noise=%u (NVS saved)",
-             MAC2STR(m->mac), m->b, m->c);
+    cis_report_send_frame(CIS_FT_CALIB_MULTI, &tr, sizeof(tr));
+    ESP_LOGI(TAG, "0x14 calib %u/" MACSTR ": thr=%u noise=%u",
+             m->observer, MAC2STR(m->mac), m->b, m->c);
+
+    /* 遗留 0x30（回归对照开关打开时，仅本地链路） */
+    if (legacy_self(m->observer)) {
+        cis_payload_train_t tr0 = {
+            .train_s = m->a,
+            .threshold = m->b,
+            .noise_floor = m->c,
+        };
+        memcpy(tr0.mac, m->mac, 6);
+        cis_report_send_frame(CIS_FT_TRAIN_RESULT, &tr0, sizeof(tr0));
+    }
 }
 
 static void report_task(void *arg)
@@ -274,7 +333,7 @@ static void report_task(void *arg)
             uint32_t ts = now_ms();
             switch (m.type) {
             case MSG_FEATURE: {
-                feat_track_t *t = track_find(m.mac, true);
+                feat_track_t *t = track_find(m.observer, m.mac, true);
                 if (t) {
                     t->mean_c = m.a;
                     t->var_c = m.b;
@@ -285,23 +344,37 @@ static void report_task(void *arg)
                 break;
             }
             case MSG_EVENT: {
-                feat_track_t *t = track_find(m.mac, true);
+                feat_track_t *t = track_find(m.observer, m.mac, true);
                 if (t) {
                     t->last_state = m.state;
                     t->last_score = m.a;
                     t->last_event_ms = ts;
                 }
-                cis_payload_event_t ev = {
-                    .name_id = (uint8_t)(cis_peer_find(m.mac) < 0 ? 0xFF : cis_peer_find(m.mac)),
+                int name_id = cis_peer_find(m.mac);   /* name_id 仍按 source mac 查表 */
+                cis_payload_event_multi_t ev = {
+                    .observer_id = m.observer,
+                    .name_id = (uint8_t)(name_id < 0 ? 0xFF : name_id),
                     .state = m.state,
                     .score = m.a,
                     .rssi = m.rssi,
                     .ts_ms = m.ts_ms,
                 };
                 memcpy(ev.mac, m.mac, 6);
-                cis_report_send_frame(CIS_FT_EVENT, &ev, sizeof(ev));
-                ESP_LOGI(TAG, "0x10 event " MACSTR " name_id=%d state=%u score=%u",
-                         MAC2STR(m.mac), ev.name_id, m.state, m.a);
+                cis_report_send_frame(CIS_FT_EVENT_MULTI, &ev, sizeof(ev));
+                ESP_LOGI(TAG, "0x13 event %u/" MACSTR " name_id=%d state=%u score=%u",
+                         m.observer, MAC2STR(m.mac), ev.name_id, m.state, m.a);
+                /* 遗留 0x10（回归对照开关打开时，仅本地链路） */
+                if (legacy_self(m.observer)) {
+                    cis_payload_event_t ev0 = {
+                        .name_id = (uint8_t)(name_id < 0 ? 0xFF : name_id),
+                        .state = m.state,
+                        .score = m.a,
+                        .rssi = m.rssi,
+                        .ts_ms = m.ts_ms,
+                    };
+                    memcpy(ev0.mac, m.mac, 6);
+                    cis_report_send_frame(CIS_FT_EVENT, &ev0, sizeof(ev0));
+                }
                 break;
             }
             case MSG_TRAIN:
@@ -325,7 +398,7 @@ static void report_task(void *arg)
             send_heartbeat();
         }
 
-        /* 0x11 特征流节拍（每 peer rate Hz，最新值优先）+ MOTION 持续期 0x10 2Hz */
+        /* 0x12 特征·多节点节拍（每链路 rate Hz，最新值优先）+ MOTION 持续期 0x13 2Hz */
         if (s_enable) {
             uint32_t interval = 1000u / s_rate;
             for (int i = 0; i < FEAT_TRACK_MAX; i++) {
@@ -335,7 +408,8 @@ static void report_task(void *arg)
                 }
                 if ((int32_t)(ts - t->last_sent_ms) >= (int32_t)interval && t->ts_ms) {
                     t->last_sent_ms = ts;
-                    cis_payload_feature_t f = {
+                    cis_payload_feature_multi_t f = {
+                        .observer_id = t->observer,
                         .ts_ms = t->ts_ms,
                         .mean = t->mean_c,
                         .var = t->var_c,
@@ -343,21 +417,47 @@ static void report_task(void *arg)
                         .rssi = t->rssi,
                     };
                     memcpy(f.mac, t->mac, 6);
-                    cis_report_send_frame(CIS_FT_FEATURE, &f, sizeof(f));
+                    cis_report_send_frame(CIS_FT_FEATURE_MULTI, &f, sizeof(f));
+                    /* 遗留 0x11（回归对照开关打开时，仅本地链路） */
+                    if (legacy_self(t->observer)) {
+                        cis_payload_feature_t f0 = {
+                            .ts_ms = t->ts_ms,
+                            .mean = t->mean_c,
+                            .var = t->var_c,
+                            .p2p = t->p2p_c,
+                            .rssi = t->rssi,
+                        };
+                        memcpy(f0.mac, t->mac, 6);
+                        cis_report_send_frame(CIS_FT_FEATURE, &f0, sizeof(f0));
+                    }
                 }
                 /* MOTION 持续期重发（2Hz） */
                 if (t->last_state == CIS_STATE_MOTION &&
                         (int32_t)(ts - t->last_event_ms) >= 500) {
                     t->last_event_ms = ts;
-                    cis_payload_event_t ev = {
-                        .name_id = (uint8_t)(cis_peer_find(t->mac) < 0 ? 0xFF : cis_peer_find(t->mac)),
+                    int name_id = cis_peer_find(t->mac);
+                    cis_payload_event_multi_t ev = {
+                        .observer_id = t->observer,
+                        .name_id = (uint8_t)(name_id < 0 ? 0xFF : name_id),
                         .state = CIS_STATE_MOTION,
                         .score = t->last_score,
                         .rssi = t->rssi,
                         .ts_ms = ts,
                     };
                     memcpy(ev.mac, t->mac, 6);
-                    cis_report_send_frame(CIS_FT_EVENT, &ev, sizeof(ev));
+                    cis_report_send_frame(CIS_FT_EVENT_MULTI, &ev, sizeof(ev));
+                    /* 遗留 0x10（回归对照开关打开时，仅本地链路） */
+                    if (legacy_self(t->observer)) {
+                        cis_payload_event_t ev0 = {
+                            .name_id = (uint8_t)(name_id < 0 ? 0xFF : name_id),
+                            .state = CIS_STATE_MOTION,
+                            .score = t->last_score,
+                            .rssi = t->rssi,
+                            .ts_ms = ts,
+                        };
+                        memcpy(ev0.mac, t->mac, 6);
+                        cis_report_send_frame(CIS_FT_EVENT, &ev0, sizeof(ev0));
+                    }
                 }
             }
         }

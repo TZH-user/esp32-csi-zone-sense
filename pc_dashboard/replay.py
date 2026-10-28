@@ -13,6 +13,10 @@ ts_iso 间隔以 speed 倍速逐条回调 on_record：
 Record.ts 被重定基后直接进 Dashboard 的分发管线（进卡片/曲线/事件表，
 重新记录则形成新 CSV 会话）。缺列/坏时间戳/未知 type 行跳过并计数。
 
+schema 双版本：v2 表头 = store.COLUMNS（含 observer 列）；v1 旧表头 =
+store.COLUMNS_LEGACY（10 列，无 observer）——单 RX 时代 observer 恒为
+S3 RX，载入旧文件时统一回填 store.NODE_NAMES[3]（"S3"）。
+
 线程模型：单回放线程 sleep 驱动；on_record 在回放线程调用——UI 端应传入
 "塞队列"回调而不是直接动控件。stop() 后线程 1s 内退出。
 """
@@ -26,7 +30,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from store import COLUMNS, Record, default_zone_name
+from store import COLUMNS, COLUMNS_LEGACY, NODE_NAMES, Record, default_zone_name
 
 _STATE_FROM_NAME = {k: v for k, v in
                     {"STILL": 0, "MOTION": 1, "PRESENCE": 2}.items()}
@@ -57,20 +61,28 @@ class CsvReplayer:
         self.rows_sent = 0
         self.rows_skipped = 0
         self.running = False
+        self._has_observer = True       # schema 标志（_load 按表头刷新）
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
     # ---- 载入 --------------------------------------------------------------
 
     def _load(self) -> list[Record]:
-        """读 CSV 还原 Record（ts 先保留原始 epoch，start 时重定基）。"""
+        """读 CSV 还原 Record（ts 先保留原始 epoch，start 时重定基）。
+
+        schema 双版本：v2（含 observer 列）/ v1 旧 10 列（observer 回填 "S3"）。
+        """
         with open(self.path, "r", encoding="utf-8", newline="") as fh:
             reader = csv.reader(fh)
             try:
                 header = next(reader)
             except StopIteration:
                 raise ValueError("empty csv: %s" % self.path)
-            if header != COLUMNS:
+            if header == COLUMNS:
+                self._has_observer = True
+            elif header == COLUMNS_LEGACY:
+                self._has_observer = False     # v1：observer 统一回填 S3
+            else:
                 raise ValueError("csv header mismatch: %s != %s"
                                  % (header, COLUMNS))
             out = []
@@ -91,12 +103,19 @@ class CsvReplayer:
         return out
 
     def _row_to_record(self, row: list) -> Record | None:
-        if len(row) < len(COLUMNS):
-            raise ValueError("short row")
-        (ts_iso, mac, name, kind, state, score,
-         mean, var, p2p, rssi) = row[:len(COLUMNS)]
+        if self._has_observer:
+            if len(row) < len(COLUMNS):
+                raise ValueError("short row")
+            (ts_iso, observer, mac, name, kind, state, score,
+             mean, var, p2p, rssi) = row[:len(COLUMNS)]
+        else:
+            if len(row) < len(COLUMNS_LEGACY):
+                raise ValueError("short row")
+            (ts_iso, mac, name, kind, state, score,
+             mean, var, p2p, rssi) = row[:len(COLUMNS_LEGACY)]
+            observer = NODE_NAMES[3]           # v1 旧 CSV：observer 恒为 S3
         ts = parse_ts_iso(ts_iso)
-        rec = Record(ts=ts, mac=mac, kind=kind,
+        rec = Record(ts=ts, mac=mac, kind=kind, observer=observer,
                      name=name or (default_zone_name(mac) if mac else ""))
         if kind == "EVENT":
             rec.state = _STATE_FROM_NAME.get(state)

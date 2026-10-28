@@ -85,4 +85,47 @@ config CIS_TRAIN_MIN_THRESHOLD
     range 1 65535
     default 15
 
+config CIS_NODE_SELF_ID
+    int "Observer id of this node (= own CSI source MAC last byte)"
+    range 0 3
+    default 3
+    help
+        observer_id ≡ 本节点 CSI 源 MAC 末字节（cis_protocol.h 头注释）。S3 RX 于
+        cis_mesh 启动时把 STA 源 MAC 设为 1a:00:00:00:00:0x（x=此处取值，默认 3，
+        即 1a:00:00:00:00:03），与 TX 板 csi_send 的 esp_wifi_set_mac 同机制；
+        并与 PC 端 MAC_DEVICE_MAP 按末字节映射对齐：
+        0x00=经典#1 TX1 / 0x01=C3 TX2 / 0x02=经典#2 TX3 / 0x03=S3 RX。
+
+config CIS_MESH_ENABLE
+    bool "Enable ESP-NOW mesh aggregation (cis_mesh, multi-node)"
+    default y
+    help
+        S3 汇聚其它节点经 ESP-NOW 上来的窗口特征（12 链路统一发 0x12/0x13/0x14）。
+        置 n 为单机回退：不设源 MAC、不起 ESP-NOW/链路表，仅本地雷达链路工作。
+
+config CIS_MESH_SRC_RATE_HZ
+    int "Mesh CSI source frame broadcast rate (Hz)"
+    range 10 200
+    default 100
+    help
+        S3 的 ESP-NOW 广播源帧频率（4B 计数器，与 TX 板 csi_send 同构——这是
+        其它节点把 S3 当 CSI 源的时钟）。全网若需降载（链路丢包 >10%）必须
+        各节点同步修改，否则窗口密度失衡。
+
+config CIS_MESH_FEATURE_RATE_HZ
+    int "Expected FEAT_BUNDLE rate per observer (Hz)"
+    range 1 50
+    default 10
+    help
+        其它节点特征打包（FEAT_BUNDLE）单播 S3 的标称频率；mesh 以 2×周期判
+        链路新鲜度（`link list` 的 stale 标记）。
+
+config CIS_LEGACY_FRAMES
+    bool "Also emit legacy 0x10/0x11/0x30 frames for local links (regression)"
+    default n
+    help
+        回归对照开关：置 y 时本地链路（observer=self）在 0x12/0x13/0x14 之外
+        同时补发旧版 0x10/0x11/0x30 帧（单机格式），供 PC 端新旧数据流同捕比对。
+        默认 n：统一只发多节点帧，旧帧转为遗留格式（PC 保留解析以兼容旧 CSV/回放）。
+
 endmenu

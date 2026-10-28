@@ -61,14 +61,16 @@ class Smoke:
 
     def structural(self, win: Dashboard):
         print("--- 结构检查 (%.1fs) ---" % self.elapsed())
-        self.check("区域卡片 ≥2（SimSource 两 peer）", len(win._cards) >= 2,
+        self.check("区域卡片 == 12（SimSource 4 节点 × 3 源）", len(win._cards) == 12,
                    "cards=%d" % len(win._cards))
         self.check("每卡片含大状态灯/score/最近事件/标定按钮",
                    all(all(hasattr(c, a) for a in
                            ("light", "score_label", "last_event_label", "calib_btn"))
                        for c in win._cards.values()))
-        self.check("pyqtgraph 曲线 ≥2（每 peer 一条）",
-                   len(win._curve_items) >= 2 and isinstance(win.plot, pg.PlotWidget),
+        self.check("卡片副标题为 observer→source 链路",
+                   all("→" in c.mac_label.text() for c in win._cards.values()))
+        self.check("pyqtgraph 曲线 == 12（每链路一条，PEER_COLORS 循环取色）",
+                   len(win._curve_items) == 12 and isinstance(win.plot, pg.PlotWidget),
                    "curves=%d" % len(win._curve_items))
         self.check("事件表存在且列头正确",
                    [win.event_table.horizontalHeaderItem(i).text()
@@ -81,19 +83,20 @@ class Smoke:
         if win._cards:
             first = next(iter(win._cards.values()))
             first.calib_btn.click()
+            self._clicked_key = first.link_key     # 卡片按链路键索引
             self._clicked_mac = first.mac
 
     def calib_countdown(self, win: Dashboard):
-        card = win._cards.get(self._clicked_mac)
+        card = win._cards.get(self._clicked_key)
         ok = (card is not None and win._calib is not None
-              and win._calib.get("mac") == self._clicked_mac
+              and win._calib.get("key") == self._clicked_key
               and "倒计时" in card.calib_label.text()
               and not card.calib_btn.isEnabled())
         self.check("标定倒计时已启动（15s 清场倒计时，按钮禁用）", ok,
                    "label=%r" % (card.calib_label.text() if card else None))
 
     def calib_backfill(self, win: Dashboard):
-        card = win._cards.get(self._clicked_mac)
+        card = win._cards.get(self._clicked_key)
         ok = (card is not None and "阈值" in card.calib_label.text()
               and "噪声" in card.calib_label.text())
         self.check("0x30 回填（阈值/噪声底上卡）", ok,
@@ -112,12 +115,14 @@ class Smoke:
         self.check("事件竖线已画", len(win._event_lines) >= 4,
                    "lines=%d" % len(win._event_lines))
         pts = [len(s["t"]) for s in win._series.values()]
-        self.check("每 peer 曲线点数 ≥100", pts and min(pts) >= 100,
+        self.check("每链路曲线点数 ≥100（12 链路 × 10Hz）",
+                   len(pts) == 12 and min(pts) >= 100,
                    "points=%s" % pts)
-        self.check("卡片名与 EVENT name_id 一致（区域1/区域2）",
-                   sorted(c.zone_name for c in win._cards.values())
-                   == ["区域1", "区域2"],
-                   "names=%s" % [c.zone_name for c in win._cards.values()])
+        expect_names = {"经典#1 TX1", "C3 TX2", "经典#2 TX3", "S3 RX"}
+        got_names = {c.zone_name for c in win._cards.values()}
+        self.check("卡片名与 MAC_DEVICE_MAP 一致（每源 4 条链路）",
+                   got_names == expect_names and len(win._cards) == 12,
+                   "names=%s" % sorted(got_names))
         # CSV 列齐全 + 行数
         csv_path = win.store.csv_path
         self.check("CSV 会话文件已生成", csv_path is not None and csv_path.exists(),
@@ -129,7 +134,7 @@ class Smoke:
                 rows = sum(1 for _ in reader)
             self.check("CSV 列齐全（%s）" % ",".join(COLUMNS), header == COLUMNS,
                        "header=%s" % header)
-            self.check("CSV 数据行 ≥600（特征流 2×10Hz + 事件 + 心跳）",
+            self.check("CSV 数据行 ≥600（12 链路特征流 + 事件 + 心跳）",
                        rows >= 600, "rows=%d" % rows)
             self.check("回放缓冲已积累", len(win.store.replay_buffer) >= 600,
                        "buffer=%d" % len(win.store.replay_buffer))
