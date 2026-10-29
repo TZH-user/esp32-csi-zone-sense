@@ -291,6 +291,7 @@ static void mesh_peers_refresh_channel(void)
         if (obs == CIS_OBSERVER_SELF) {
             continue;
         }
+        memset(peer.peer_addr, 0, 6);   /* 同 mesh_peers_init：先清零再写字节 */
         peer.peer_addr[0] = 0x1a;
         peer.peer_addr[5] = obs;
         esp_now_mod_peer(&peer);      /* 不存在则保持失败态，下轮重试 */
@@ -346,6 +347,10 @@ static esp_err_t mesh_peers_init(void)
             continue;
         }
         esp_now_peer_info_t tx_peer = peer;
+        /* peer_addr 此刻是广播地址 FF:FF:FF:FF:FF:FF，必须整块清零再写——
+         * 只改 [0]/[5] 会把中间 4 字节留成 FF，加进 1a:FF:FF:FF:FF:0x，
+         * 之后所有 CMD_TRAIN 单播 ESP_ERR_ESPNOW_NOT_FOUND（2026-10-30 真机） */
+        memset(tx_peer.peer_addr, 0, 6);
         tx_peer.peer_addr[0] = 0x1a;
         tx_peer.peer_addr[5] = obs;
         err = esp_now_add_peer(&tx_peer);
