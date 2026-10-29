@@ -468,9 +468,9 @@ class ZoneMapWidget(QWidget):
     # ---- 数据接口（Dashboard 每 500ms 调一次） ------------------------------
 
     @staticmethod
-    def _link_midpoint(key: str) -> tuple | None:
-        """链路键 "observer>mac" → (源锚点, observer 锚点) 的中点（归一化）。
-        observer 名或 MAC 末字节无锚点时返回 None（该链路不参与质心）。"""
+    def _link_anchors(key: str) -> tuple | None:
+        """链路键 "observer>mac" → (源锚点, observer 锚点)（归一化坐标对）。
+        observer 名或 MAC 末字节无锚点时返回 None（该链路不参与质心/绘制）。"""
         try:
             obs, mac = key.split(">", 1)
         except ValueError:
@@ -482,6 +482,15 @@ class ZoneMapWidget(QWidget):
         a_src = ZONE_ANCHORS.get(mac.replace(":", "")[-2:])
         if a_obs is None or a_src is None:
             return None
+        return a_src, a_obs
+
+    @classmethod
+    def _link_midpoint(cls, key: str) -> tuple | None:
+        """链路键 → (源锚点, observer 锚点) 的中点（归一化）。"""
+        anchors = cls._link_anchors(key)
+        if anchors is None:
+            return None
+        a_src, a_obs = anchors
         return ((a_src[0] + a_obs[0]) / 2.0, (a_src[1] + a_obs[1]) / 2.0)
 
     def update_activity(self, responses: dict[str, float],
@@ -538,7 +547,7 @@ class ZoneMapWidget(QWidget):
         p.drawRect(0, 0, w - 1, h - 1)
         p.setPen(QColor("#888888"))
         p.setFont(QFont("Microsoft YaHei", 8))
-        p.drawText(6, 14, "区域俯视图（上=北 左=西）")
+        p.drawText(6, 14, "区域俯视图（上=北 左=西 · 四节点 1.5m 方阵）")
 
         m = 34                                    # 图形区边距
         gw, gh = w - 2 * m, h - 2 * m - 18
@@ -569,6 +578,38 @@ class ZoneMapWidget(QWidget):
                 if obs_id == src_id:
                     continue
                 draw_directed_line(to_px(a_src), to_px(a_obs))
+
+        # 部署方阵：四节点实际站位连线（1.5m×1.5m）
+        xs = [a[0] for a in ZONE_ANCHORS.values()]
+        ys = [a[1] for a in ZONE_ANCHORS.values()]
+        square = [(min(xs), min(ys)), (max(xs), min(ys)),
+                  (max(xs), max(ys)), (min(xs), max(ys))]
+        p.setPen(QPen(QColor("#9fc6a8"), 1, Qt.PenStyle.DashLine))
+        for i in range(4):
+            p1, p2 = to_px(square[i]), to_px(square[(i + 1) % 4])
+            p.drawLine(int(p1[0]), int(p1[1]), int(p2[0]), int(p2[1]))
+
+        # 活动链路高亮：有响应的链路按强度加粗暖色——一眼看出"谁感知到了扰动"
+        for key, r in self._responses.items():
+            if r <= 0.15:
+                continue
+            anchors = self._link_anchors(key)
+            if anchors is None:
+                continue
+            c = QColor("#e0592a")
+            c.setAlpha(90 + int(min(120.0, r * 40)))
+            p.setPen(QPen(c, 1 + min(3.5, r * 0.7)))
+            draw_directed_line(to_px(anchors[0]), to_px(anchors[1]))
+
+        # 四角方位角标（浅灰，与节点锚点 0.15/0.85 错开不重叠）
+        p.setFont(QFont("Microsoft YaHei", 9))
+        p.setPen(QColor("#d8d8d8"))
+        for txt, qx, qy in (("西北", 0.04, 0.06), ("东北", 0.96, 0.06),
+                            ("西南", 0.04, 0.94), ("东南", 0.96, 0.94)):
+            px, py = to_px((qx, qy))
+            p.drawText(int(px) - 40, int(py) - 7, 80, 14,
+                       Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+                       txt)
 
         # 设备标记（S3 用下方绿色圆点单独画）
         p.setFont(QFont("Microsoft YaHei", 8, QFont.Weight.Bold))
@@ -613,6 +654,14 @@ class ZoneMapWidget(QWidget):
             radius = 7 + min(6.0, self._total)
             p.drawEllipse(int(x - radius), int(y - radius),
                           int(radius * 2), int(radius * 2))
+            if not stale:      # 实时活动光环（静止保持态不画，避免误导）
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                p.setPen(QPen(QColor(214, 39, 40, 70), 2))
+                ring = radius + 5
+                p.drawEllipse(int(x - ring), int(y - ring),
+                              int(ring * 2), int(ring * 2))
+                p.setBrush(QBrush(body))
+                p.setPen(Qt.PenStyle.NoPen)
             p.setPen(QColor("#333333"))
             p.setFont(QFont("Microsoft YaHei", 8))
             label = ("上次活动 " if stale else "当前 ") + \
@@ -647,7 +696,7 @@ class Dashboard(QMainWindow):
             replay_file=None, replay_speed=4.0,
             data_root=None, auto_record=False, auto_start=False, title=None)
         self.cfg = cfg
-        self.setWindowTitle(cfg.title or "ESP32 CSI 区域监控 · M3")
+        self.setWindowTitle(cfg.title or "ESP32 CSI 区域监控 · 收发一体 12 链路")
         self.resize(1320, 820)
         self.setMaximumSize(1920, 1200)  # 限制窗口最大尺寸
 
@@ -1198,15 +1247,20 @@ class Dashboard(QMainWindow):
         tbl = self.event_table
         tbl.insertRow(0)
         hhmmss = datetime.fromtimestamp(rec.ts).strftime("%H:%M:%S")
+        bg = None
         if rec.kind == "EVENT":
             ev_text, color = rec.state_name(), STATE_COLORS.get(rec.state)
+            bg = {1: "#fdecec", 2: "#fff6e0"}.get(rec.state)   # 整行底纹：运动浅红/存在浅黄
         else:                                   # CALIB
             ev_text, color = "标定完成", "#1a7f37"
+            bg = "#e9f5ec"
         cells = (hhmmss, rec.name or "-", rec.mac or "-", ev_text,
                  "" if rec.score is None else rec.score,
                  "" if rec.rssi is None else rec.rssi)
         for col, val in enumerate(cells):
             it = QTableWidgetItem(str(val))
+            if bg:
+                it.setBackground(QBrush(QColor(bg)))
             if col == 3 and color:
                 it.setForeground(QBrush(QColor(color)))
             tbl.setItem(0, col, it)
