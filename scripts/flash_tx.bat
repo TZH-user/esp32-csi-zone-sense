@@ -77,7 +77,7 @@ if errorlevel 1 (
 findstr /i "MAC:" "%CHIPID_LOG%"
 findstr /i "%EXPECT_MAC%" "%CHIPID_LOG%" >nul
 if errorlevel 1 (
-    echo [ABORT] MAC mismatch (expected %EXPECT_MAC%). This port is not %ROLE%. Refusing to flash.
+    echo [ABORT] MAC mismatch - expected %EXPECT_MAC%. This port is not %ROLE%. Refusing to flash.
     exit /b 1
 )
 echo [OK] MAC match, target confirmed as %ROLE%.
@@ -108,14 +108,14 @@ if not "%EXPECT_NODE%"=="" (
     findstr /c:"#define %EXPECT_NODE% 1" "%PROJ%\%BUILD_DIR%\config\sdkconfig.h" >nul 2>&1
     if errorlevel 1 (
         echo [ABORT] Build artifact does NOT carry %EXPECT_NODE% - refusing to flash.
-        echo         tx1 must be built with CIS_TX_NODE_1 (default sdkconfig),
-        echo         tx3 with CIS_TX_NODE_3 (sdkconfig.defaults.tx3 + build_tx3).
+        echo         tx1 must be built with CIS_TX_NODE_1 - default sdkconfig,
+        echo         tx3 with CIS_TX_NODE_3 - sdkconfig.defaults.tx3 + build_tx3.
         echo         Delete %BUILD_DIR% and sdkconfig.tx3 if present, then retry.
         exit /b 1
     )
     echo [OK] Build artifact confirmed as %EXPECT_NODE%.
 ) else (
-    echo [3/4] Node identity check skipped (no CIS_TX_NODE config in this project).
+    echo [3/4] Node identity check skipped - no CIS_TX_NODE config in this project.
 )
 
 echo [4/4] Flashing %PORT% @%BAUD% ...

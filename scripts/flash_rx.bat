@@ -33,7 +33,7 @@ if errorlevel 1 (
 findstr /i "MAC:" "%CHIPID_LOG%"
 findstr /i "%EXPECT_MAC%" "%CHIPID_LOG%" >nul
 if errorlevel 1 (
-    echo [ABORT] MAC mismatch (expected %EXPECT_MAC%). This port is not RX S3#1. Refusing to flash.
+    echo [ABORT] MAC mismatch - expected %EXPECT_MAC%. This port is not RX S3#1. Refusing to flash.
     exit /b 1
 )
 echo [OK] MAC match, target confirmed as RX S3#1.

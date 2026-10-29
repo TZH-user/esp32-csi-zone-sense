@@ -270,18 +270,53 @@ static void mesh_task(void *arg)
     }
 }
 
+/* STA 关联后整表重刷对端信道：mesh_peers_init 必须先于 STA connect 执行（源 MAC
+ * 要在 connect 前生效），peer 的 channel=0 在 add 时被固化为当时主信道；STA 关联
+ * 路由器后即报 "Peer channel is not equal to the home channel" 全部发送失败。
+ * （2026-10-29 真机联调发现：bcast fail=7749 全失败，收方向正常所以特征流仍在。）
+ * 广播任务检测连续失败即按当前主信道重刷对端表；SoftAP 降级/换信道场景同样自愈。 */
+static void mesh_peers_refresh_channel(void)
+{
+    uint8_t prim = 0;
+    wifi_second_chan_t second = WIFI_SECOND_CHAN_NONE;
+    esp_wifi_get_channel(&prim, &second);
+    esp_now_peer_info_t peer = {
+        .channel = prim,
+        .ifidx   = WIFI_IF_STA,
+        .encrypt = false,
+    };
+    memcpy(peer.peer_addr, s_bcast_addr, 6);
+    esp_now_mod_peer(&peer);
+    for (uint8_t obs = 0; obs <= 3; obs++) {
+        if (obs == CIS_OBSERVER_SELF) {
+            continue;
+        }
+        peer.peer_addr[0] = 0x1a;
+        peer.peer_addr[5] = obs;
+        esp_now_mod_peer(&peer);      /* 不存在则保持失败态，下轮重试 */
+    }
+    ESP_LOGW(TAG, "peer channel refreshed to %u (STA %s)", prim,
+             prim ? "associated" : "disconnected");
+}
+
 /* 100Hz 广播源帧：4B 计数器，与 TX 板 csi_send 同构（全网 CSI 时钟） */
 static void mesh_bcast_task(void *arg)
 {
     (void)arg;
     uint32_t count = 0;
+    int consec_fail = 0;
     const TickType_t period = pdMS_TO_TICKS(1000u / CONFIG_CIS_MESH_SRC_RATE_HZ);
     ESP_LOGI(TAG, "bcast task up: %uHz, 4B counter", CONFIG_CIS_MESH_SRC_RATE_HZ);
     for (;;) {
         if (esp_now_send(s_bcast_addr, (const uint8_t *)&count, sizeof(count)) == ESP_OK) {
             s_tx_bcast++;
+            consec_fail = 0;
         } else {
             s_tx_fail++;
+            /* 50 次（0.5s）失败后重刷一次；之后每 500 次（5s）重试直到恢复 */
+            if (++consec_fail == 50 || (consec_fail > 50 && consec_fail % 500 == 0)) {
+                mesh_peers_refresh_channel();
+            }
         }
         count++;
         vTaskDelay(period);
