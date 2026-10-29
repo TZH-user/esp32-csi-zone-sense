@@ -508,6 +508,16 @@ class ZoneMapWidget(QWidget):
             self._pos = self._hold_pos                 # 静止：保持上次位置
         self.update()                                  # 触发 repaint
 
+    def reset_view(self):
+        """复位显示：清响应/位置/保持/轨迹（复位按钮调用，固件侧状态不受影响）。"""
+        self._responses = {}
+        self._pos = None
+        self._hold_pos = None
+        self._last_active_ts = 0.0
+        self._total = 0.0
+        self._trail.clear()
+        self.update()
+
     # ---- 绘制 ---------------------------------------------------------------
 
     def _region_name(self, x: float, y: float) -> str:
@@ -650,6 +660,8 @@ class Dashboard(QMainWindow):
         self._hb = None
         self._frames_since_fps = 0
         self._bad_payload = 0
+        self._stat_offset = {}       # 复位按钮采样的统计基线（显示值 = 原值 - 基线）
+        self._bad_payload_offset = 0
         self._device_info: ProbeResult | None = None   # 启动扫描识别到的设备
         self._device_shown = False                     # 设备信息是否已显示
         self._discovered_macs: set = set()             # 已发现链路键集合（避免重复日志）
@@ -1194,7 +1206,12 @@ class Dashboard(QMainWindow):
             tbl.removeRow(tbl.rowCount() - 1)
 
     def _on_reset_clicked(self):
-        """复位所有事件和曲线（清除数据，保留设备映射和配置）。"""
+        """复位显示层：事件表/曲线/卡片/区域图/统计/标定进度全部清零（保留
+        连接、记录、设备映射与阈值）。
+
+        注意：事件的源头是各板固件里的检测状态机，上位机复位触及不到——
+        静息 10s 后固件自行回 IDLE；阈值标定后静息环境不会再触发事件。
+        """
         # 清除事件表
         self.event_table.setRowCount(0)
         # 清除曲线上的事件竖线
@@ -1215,11 +1232,25 @@ class Dashboard(QMainWindow):
             card.score_label.setText("score -")
             card.feat_label.setText("var -  p2p -")
             card.rssi_label.setText("rssi -")
+        # 区域图：位置/轨迹/保持全部清空
+        self.zone_map.reset_view()
+        # 统计计数器基线（ok/crc/队列丢/固件丢等从此刻重新起算）
+        try:
+            src_stats = (self.source.stats() or {}) if (
+                self.source is not None and hasattr(self.source, "stats")) else {}
+        except Exception:
+            src_stats = {}
+        self._stat_offset = {k: v for k, v in src_stats.items()
+                             if isinstance(v, (int, float))}
+        self._bad_payload_offset = self._bad_payload
+        # 标定进度（含倒计时/超时定时器）
+        self._reset_global_calib_state()
         # 重置曲线 x 轴和 y 轴
         self._t0 = None
         self.plot.setXRange(0, 60, padding=0)
         self._apply_y_range()
-        self.log("[复位] 已清除所有事件和曲线数据")
+        self.log("[复位] 显示层已全部清零（连接/记录保持）；固件检测状态机不受影响，"
+                 "静息 10s 自行回 IDLE")
 
     def _on_auto_y_changed(self, state: int):
         """Y 轴自动/手动量程切换（state: 0=未勾选手动，2=已勾选自动）。"""
@@ -1614,18 +1645,23 @@ class Dashboard(QMainWindow):
             except Exception:
                 src_stats = {}
         if src_stats:
-            parts.append("ok %s" % src_stats.get("frames_ok", "-"))
-            if src_stats.get("bad_crc"):
-                parts.append("crc错 %s" % src_stats["bad_crc"])
-            parts.append("队列丢 %s" % src_stats.get("queue_dropped", 0))
+            def off(key):
+                return self._stat_offset.get(key, 0)
+            parts.append("ok %s" % max(0, src_stats.get("frames_ok", 0) - off("frames_ok")) if isinstance(src_stats.get("frames_ok"), (int, float)) else "ok -")
+            bad = src_stats.get("bad_crc")
+            if isinstance(bad, (int, float)) and bad - off("bad_crc") > 0:
+                parts.append("crc错 %s" % int(bad - off("bad_crc")))
+            qd = src_stats.get("queue_dropped", 0)
+            if isinstance(qd, (int, float)):
+                parts.append("队列丢 %d" % max(0, int(qd - off("queue_dropped"))))
             if "device_dropped_frames" in src_stats:
-                parts.append("固件丢 %s" % src_stats["device_dropped_frames"])
+                parts.append("固件丢 %s" % max(0, src_stats["device_dropped_frames"] - off("device_dropped_frames")))
             if src_stats.get("bytes_dropped"):
-                parts.append("环丢字节 %s" % src_stats["bytes_dropped"])
+                parts.append("环丢字节 %s" % max(0, src_stats["bytes_dropped"] - off("bytes_dropped")))
             if "rows_sent" in src_stats:
                 parts.append("回放已发 %s" % src_stats["rows_sent"])
-        if self._bad_payload:
-            parts.append("坏payload %d" % self._bad_payload)
+        if self._bad_payload - getattr(self, "_bad_payload_offset", 0) > 0:
+            parts.append("坏payload %d" % (self._bad_payload - self._bad_payload_offset))
         self.stat_label.setText(" | ".join(parts))
         # 心跳 / 回放进度
         if isinstance(self._hb, protocol.Heartbeat):
