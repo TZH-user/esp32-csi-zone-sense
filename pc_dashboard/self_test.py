@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import os
 import struct
 import time
 from dataclasses import dataclass, field
@@ -150,9 +151,19 @@ def _clean_text(text: str, max_len: int = 120) -> str:
 # ---------------------------------------------------------------------------
 
 def scan_ports() -> list[PortInfo]:
-    """扫描系统串口，过滤蓝牙，返回 PortInfo 列表。"""
+    """扫描系统串口，过滤蓝牙与 CIS_SCAN_SKIP 名单，返回 PortInfo 列表。
+
+    CIS_SCAN_SKIP：逗号分隔串口号（如 "COM19"）——探测会真实打开端口并拉
+    DTR/RTS，非本系统的设备（如用户自用的鲁班猫串口）必须先排除，避免打扰。
+    """
+    skip = {s.strip().upper() for s in os.environ.get("CIS_SCAN_SKIP", "").split(",")
+            if s.strip()}
     out = []
     for p in list_ports.comports():
+        if p.device.upper() in skip:
+            continue
+        if "蓝牙" in (p.description or "") or "Bluetooth" in (p.description or ""):
+            continue
         out.append(PortInfo(port=p.device, description=p.description, hwid=p.hwid))
     return out
 
