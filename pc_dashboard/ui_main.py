@@ -266,12 +266,14 @@ STATE_COLORS_CN = {
     2: "#faad14",  # 存在 - 黄色
 }
 
-# MAC → 设备名称映射（按源 MAC 后字节；"03"=S3 RX 自定义 STA MAC）
+# MAC → 设备名称映射（按源 MAC 后字节；"03"=S3 自定义 STA MAC）。
+# 首元=节点功能名（NODE_ID_BY_NAME/链路键用，勿改）；次元=显示名（收发一体后
+# 各板又收又发，显示名不再带 RX/TX 后缀）。
 MAC_DEVICE_MAP = {
-    "00": ("TX1", "经典#1 TX1"),     # 1a:00:00:00:00:00
-    "01": ("TX2", "C3 TX2"),         # 1a:00:00:00:00:01
-    "02": ("TX3", "经典#2 TX3"),     # 1a:00:00:00:00:02
-    "03": ("S3", "S3 RX"),           # 1a:00:00:00:00:03（mesh 后 S3 也发源帧）
+    "00": ("TX1", "经典#1"),     # 1a:00:00:00:00:00
+    "01": ("TX2", "C3"),         # 1a:00:00:00:00:01
+    "02": ("TX3", "经典#2"),     # 1a:00:00:00:00:02
+    "03": ("S3", "S3"),          # 1a:00:00:00:00:03（兼网关：唯一串口上报）
 }
 
 # 节点名 → observer_id（MAC_DEVICE_MAP 键的十六进制值）
@@ -309,8 +311,12 @@ class ZoneCard(QFrame):
 
         self.name_label = QLabel(name)
         self.name_label.setStyleSheet("font-size:13pt; font-weight:bold;")
-        # 副标题：链路 observer→source（无 observer 时退回纯 MAC）
-        self.mac_label = QLabel("%s→%s" % (observer, mac) if observer else mac)
+        # 副标题：链路 observer→source（显示用设备名，功能 observer 原样保留）
+        obs_disp = observer
+        _nid = NODE_ID_BY_NAME.get((observer or "").upper())
+        if _nid is not None:
+            obs_disp = MAC_DEVICE_MAP["%02x" % _nid][1]
+        self.mac_label = QLabel("%s→%s" % (obs_disp, mac) if observer else mac)
         self.mac_label.setStyleSheet("color:#777; font-size:8pt;")
 
         self.score_label = QLabel("score -")
@@ -583,7 +589,7 @@ class ZoneMapWidget(QWidget):
         p.drawEllipse(rx_x - 7, rx_y - 7, 14, 14)
         p.setPen(QColor("#333333"))
         p.drawText(rx_x - 40, rx_y + 10, 80, 14,
-                   Qt.AlignmentFlag.AlignCenter, "S3 RX")
+                   Qt.AlignmentFlag.AlignCenter, "S3")
 
         # 轨迹尾迹（仅确信定位点，越旧越淡）
         trail = self._trail.trail()
@@ -1174,8 +1180,10 @@ class Dashboard(QMainWindow):
                 obs, _, mac = key.partition(">")
                 src_name = (self._names.get(mac)
                             or ZoneCard.device_name_from_mac(mac) or mac)
+                _nid = NODE_ID_BY_NAME.get((obs or "").upper())
+                obs_disp = MAC_DEVICE_MAP["%02x" % _nid][1] if _nid is not None else obs
                 item = self.plot.plot(pen=pg.mkPen(QColor(color), width=1),
-                                      name="%s→%s" % (obs, src_name))
+                                      name="%s→%s" % (obs_disp, src_name))
                 self._curve_items[key] = item
             if s["t"]:
                 t0 = self._t0 or s["t"][0]
@@ -1246,19 +1254,23 @@ class Dashboard(QMainWindow):
         # 标定进度（含倒计时/超时定时器）
         self._reset_global_calib_state()
         # 固件侧检测状态机复位（检测集中在 S3，一条命令覆盖 12 链路；阈值/NVS 不动）
+        fw_reset = False
         if self._command_channel is not None:
             if self._command_channel("detect reset"):
+                fw_reset = True
                 self.log("[复位] → detect reset（固件 12 链路状态机 → IDLE）")
             else:
-                self.log("[复位] detect reset 发送失败（固件状态机静息 10s 自回 IDLE）")
-        else:
-            self.log("[复位] 命令通道不可用，仅复位显示层；固件状态机静息 10s 自回 IDLE")
+                self.log("[复位] detect reset 发送失败")
         # 重置曲线 x 轴和 y 轴
         self._t0 = None
         self.plot.setXRange(0, 60, padding=0)
         self._apply_y_range()
-        self.log("[复位] 显示层已全部清零（连接/记录保持）；固件检测状态机不受影响，"
-                 "静息 10s 自行回 IDLE")
+        if fw_reset:
+            self.log("[复位] 显示层已清零 + 固件状态机已置 IDLE（连接/记录/阈值保持；"
+                     "复位后区域内有活动会重新按判据确认，属正常检测）")
+        else:
+            self.log("[复位] 显示层已全部清零（连接/记录保持）；命令通道不可用，"
+                     "固件状态机静息 10s 自行回 IDLE")
 
     def _on_auto_y_changed(self, state: int):
         """Y 轴自动/手动量程切换（state: 0=未勾选手动，2=已勾选自动）。"""

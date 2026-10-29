@@ -118,7 +118,7 @@ class Smoke:
         self.check("每链路曲线点数 ≥100（12 链路 × 10Hz）",
                    len(pts) == 12 and min(pts) >= 100,
                    "points=%s" % pts)
-        expect_names = {"经典#1 TX1", "C3 TX2", "经典#2 TX3", "S3 RX"}
+        expect_names = {"经典#1", "C3", "经典#2", "S3"}
         got_names = {c.zone_name for c in win._cards.values()}
         self.check("卡片名与 MAC_DEVICE_MAP 一致（每源 4 条链路）",
                    got_names == expect_names and len(win._cards) == 12,
