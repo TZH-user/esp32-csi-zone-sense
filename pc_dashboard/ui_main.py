@@ -1245,6 +1245,14 @@ class Dashboard(QMainWindow):
         self._bad_payload_offset = self._bad_payload
         # 标定进度（含倒计时/超时定时器）
         self._reset_global_calib_state()
+        # 固件侧检测状态机复位（检测集中在 S3，一条命令覆盖 12 链路；阈值/NVS 不动）
+        if self._command_channel is not None:
+            if self._command_channel("detect reset"):
+                self.log("[复位] → detect reset（固件 12 链路状态机 → IDLE）")
+            else:
+                self.log("[复位] detect reset 发送失败（固件状态机静息 10s 自回 IDLE）")
+        else:
+            self.log("[复位] 命令通道不可用，仅复位显示层；固件状态机静息 10s 自回 IDLE")
         # 重置曲线 x 轴和 y 轴
         self._t0 = None
         self.plot.setXRange(0, 60, padding=0)

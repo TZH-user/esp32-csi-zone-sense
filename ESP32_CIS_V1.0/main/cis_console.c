@@ -366,6 +366,41 @@ static int cmd_link(int argc, char **argv)
     return 0;
 }
 
+/* ============ detect 命令：检测状态查看 / 复位 ============ */
+
+static int cmd_detect(int argc, char **argv)
+{
+    if (argc >= 2 && strcmp(argv[1], "reset") == 0) {
+        cis_detect_reset();
+        return 0;
+    }
+    if (argc != 1) {
+        ESP_LOGE(TAG, "usage: detect [reset]");
+        return 1;
+    }
+    static const char *const names[] = { "IDLE", "MOTION", "PRESENCE" };
+    ESP_LOGI(TAG, "detect states (IDLE=0 MOTION=1 PRESENCE=2; threshold 单位 centi-var)");
+    for (size_t i = 0; i < CIS_LINK_MAX; i++) {
+        cis_mesh_link_info_t info;
+        if (!cis_mesh_link_get(i, &info)) {
+            break;
+        }
+        if (!info.active) {
+            continue;
+        }
+        cis_det_stats_t st;
+        if (cis_detect_get_stats(info.observer, info.mac, &st) != ESP_OK) {
+            continue;
+        }
+        ESP_LOGI(TAG, "det[%2u] %u->" MACSTR " state=%s var=%lu thr=%u win=%lu dirty=%lu",
+                 (unsigned)i, st.observer, MAC2STR(st.mac),
+                 st.state < 3 ? names[st.state] : "?",
+                 (unsigned long)st.var_c, st.threshold,
+                 (unsigned long)st.windows, (unsigned long)st.dirty_windows);
+    }
+    return 0;
+}
+
 static int cmd_mesh(int argc, char **argv)
 {
     if (argc < 2 || strcmp(argv[1], "status") != 0) {
@@ -556,6 +591,8 @@ void cis_console_start(void)
           .func = &cmd_udp },
         { .command = "link",      .help = "link list — 12 链路 observer→source / 新鲜度 / seq 丢失",
           .func = &cmd_link },
+        { .command = "detect",    .help = "detect [reset] — 各链路检测状态 / 全部复位为 IDLE（阈值不动）",
+          .func = &cmd_detect },
         { .command = "mesh",      .help = "mesh status — espnow 收发/丢包计数 + 各发送方 last_seen",
           .func = &cmd_mesh },
         { .command = "dump",      .help = "dump [mac] — 实时统计",

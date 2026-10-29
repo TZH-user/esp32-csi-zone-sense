@@ -88,6 +88,10 @@ esp_err_t cis_detect_feed_external(uint8_t observer, const uint8_t mac[6],
 /** dump：取 per-peer 统计快照（(observer,mac) 未注册返回 ESP_ERR_NOT_FOUND） */
 esp_err_t cis_detect_get_stats(uint8_t observer, const uint8_t mac[6], cis_det_stats_t *out);
 
+/** 复位全部链路检测状态机 → IDLE（over/under 计数与静息时长清零；阈值/NVS/训练不动）。
+ *  上位机"复位"按钮经 REPL `detect reset` 调用；此后按滞回判据重新确认。 */
+void cis_detect_reset(void);
+
 /** 丢帧计数（RSSI 突变丢窗 + 特征队列满丢弃），0x01 心跳 lost_frames 字段 */
 uint32_t cis_detect_lost_frames(void);
 

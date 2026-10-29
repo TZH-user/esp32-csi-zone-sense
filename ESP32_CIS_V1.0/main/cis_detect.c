@@ -540,6 +540,19 @@ esp_err_t cis_detect_get_stats(uint8_t observer, const uint8_t mac[6], cis_det_s
     return ESP_OK;
 }
 
+void cis_detect_reset(void)
+{
+    portENTER_CRITICAL(&s_ctx_mux);
+    for (det_ctx_t *p = s_ctx_list; p; p = p->next) {
+        p->state = CIS_DET_IDLE;
+        p->over_cnt = 0;
+        p->under_cnt = 0;
+        p->quiet_ms = 0;
+    }
+    portEXIT_CRITICAL(&s_ctx_mux);
+    ESP_LOGW(TAG, "detect reset: all links -> IDLE (threshold/NVS untouched)");
+}
+
 uint32_t cis_detect_lost_frames(void)
 {
     uint32_t drops = 0;
