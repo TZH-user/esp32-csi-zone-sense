@@ -170,6 +170,11 @@ def main() -> None:
     A("")
     hours = sorted(hourly)
     if hours:
+        # 过滤半桶：起止不在整点的会话，首尾小时桶样本不足会失真
+        # （<600 样本 ≈ 不足 60s@10Hz/12链路 的量级，跳过不进漂移表）
+        hours = [h for h in hours
+                 if sum(len(v) for v in hourly[h].values()) >= 600]
+    if hours:
         link_names = sorted({l for h in hours for l in hourly[h]})
         A("| 小时 | %s |" % " | ".join(link_names))
         A("|---|%s" % "---|" * len(link_names))

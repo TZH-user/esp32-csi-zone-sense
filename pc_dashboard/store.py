@@ -2,6 +2,8 @@
 
 CSV 会话：data/YYYYMMDD_HHMM/cis_log.csv（列序固定，见 COLUMNS）：
     ts_iso,observer,mac,name,type,state,score,mean,var,p2p,rssi
+伴生 calib.log：CALIB 帧的阈值/噪声底摘要逐行落盘（CSV 无 text 列，
+这是标定数值的唯一持久化出口，分析/回放据此离线恢复标定结果）。
 并集 schema：各帧类型只填自己有的列，其余留空——
     HEARTBEAT 只有 ts_iso/type（存活证据）；
     EVENT   state/score/rssi；
@@ -192,6 +194,7 @@ class Store:
         self._flush_every = flush_every
         self._fh = None
         self._writer = None
+        self._calib_fh = None           # calib.log 边车：CALIB 阈值/噪声底逐行落盘
         self._lock = threading.Lock()
 
     # ---- 会话生命周期 ------------------------------------------------------
@@ -222,6 +225,10 @@ class Store:
             fh.flush()
             self.session_dir, self.csv_path = d, path
             self._fh, self._writer = fh, w
+            # 标定边车：CSV 的 CALIB 行不携带数值（COLUMNS 无 text 列），
+            # 阈值/噪声底只有这里有数——回放/分析可离线恢复每次标定结果
+            self._calib_fh = open(d / "calib.log", "a", encoding="utf-8", buffering=1)
+            self._calib_fh.write("# ts observer>mac 标定摘要\n")
             self.rows_written = 0
             return path
 
@@ -235,6 +242,12 @@ class Store:
             except Exception:
                 self.write_errors += 1
             self._fh = self._writer = None
+            try:
+                if self._calib_fh is not None:
+                    self._calib_fh.close()
+            except Exception:
+                self.write_errors += 1
+            self._calib_fh = None
 
     # ---- 写入 --------------------------------------------------------------
 
@@ -251,6 +264,9 @@ class Store:
                 self.rows_written += 1
                 if self.rows_written % self._flush_every == 0:
                     self._fh.flush()
+                if rec.kind == "CALIB" and self._calib_fh is not None:
+                    self._calib_fh.write("%s %s>%s %s\n"
+                                         % (rec.ts_iso, rec.observer, rec.mac, rec.text))
                 return True
             except Exception:
                 self.write_errors += 1
