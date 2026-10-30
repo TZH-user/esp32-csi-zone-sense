@@ -44,9 +44,12 @@ config CIS_FEATURE_RATE_HZ
 config CIS_MOTION_CONFIRM_FRAMES
     int "Motion confirm windows N (consecutive over-threshold)"
     range 1 100
-    default 10
+    default 12
     help
-        连续 N 窗超阈判运动（10 窗 @10Hz = 1s 滞回）。
+        连续 N 窗超阈判运动（12 窗 @10Hz = 1.2s 滞回）。
+        2026-10-30 夜间 3.6h 静置实测：最弱链路（S3→经典#1）最大连续
+        超阈 9 窗，距 N=10 仅差 1；提到 12 留 33% 裕量，代价仅 +200ms
+        检测延迟（人穿过区域的持续扰动远长于 1.2s）。
 
 config CIS_STILL_CONFIRM_FRAMES
     int "Still confirm windows M (consecutive under-threshold)"
